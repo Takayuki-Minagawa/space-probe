@@ -156,6 +156,117 @@ test("phase error changes encounter assessment and restore repairs it", async ({
   await expect(phase).toHaveValue(referencePhase);
 });
 
+test("the first experiment compares arrivals and explains the unchanged flight time", async ({
+  page,
+}) => {
+  await page
+    .getByRole("button", { name: "参考設定の到着を見る", exact: true })
+    .click();
+  await expect(page.locator(".outcome strong")).toHaveText(
+    "到着予測：遭遇条件内",
+  );
+  const atArrival = await page
+    .getByRole("slider", { name: "仮想時刻", exact: true })
+    .inputValue();
+  const steps = page.locator(".calculation-step");
+  await expect(steps).toHaveCount(3);
+  await expect(steps.nth(2).locator(".calculation-result")).toHaveText("0 km");
+  await page
+    .getByRole("button", { name: "先行角を10°変えて比べる", exact: true })
+    .click();
+  await expect(page.locator(".outcome strong")).toHaveText(
+    "到着予測：火星とすれ違い",
+  );
+  await expect(
+    page.getByRole("slider", { name: "仮想時刻", exact: true }),
+  ).toHaveValue(atArrival);
+  await expect(steps.nth(2).locator(".calculation-result")).not.toHaveText(
+    "0 km",
+  );
+  await expect(steps.first().locator(".calculation-result")).toHaveText(
+    "258.87 日",
+  );
+  await expect(page.locator(".reference-path")).toBeVisible();
+  const shiftedPhase = await steps
+    .nth(1)
+    .locator(".calculation-result")
+    .textContent();
+  await page
+    .getByRole("button", { name: "参考の角度で30日待つ", exact: true })
+    .click();
+  await expect(
+    page.getByRole("spinbutton", { name: "出発までの待ち時間", exact: true }),
+  ).toHaveValue("30");
+  await expect(steps.nth(1).locator(".calculation-result")).not.toHaveText(
+    shiftedPhase!,
+  );
+  await expect(steps.first().locator(".calculation-result")).toHaveText(
+    "258.87 日",
+  );
+  await page.getByRole("button", { name: "English", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Follow the calculation", exact: true }),
+  ).toBeVisible();
+  await expect(steps.first().locator(".calculation-result")).toHaveText(
+    "258.87 days",
+  );
+});
+
+test("calculation examples recover invalid inputs and show the physical consequences", async ({
+  page,
+}) => {
+  await openLab(page, "02 地球から出発");
+  const steps = page.locator(".calculation-step");
+  const referenceBurn = await steps
+    .last()
+    .locator(".calculation-result")
+    .textContent();
+  await page
+    .getByRole("button", { name: "1,000 kmから出発", exact: true })
+    .click();
+  await expect(steps.last().locator(".calculation-result")).not.toHaveText(
+    referenceBurn!,
+  );
+  await openLab(page, "04 火星で止まる");
+  await page
+    .getByRole("button", { name: "300 kmで減速しない", exact: true })
+    .click();
+  await expect(steps.last().locator(".calculation-result")).toContainText(
+    "フライバイ",
+  );
+  await page.getByRole("spinbutton", { name: "減速Δv", exact: true }).fill("");
+  await expect(page.locator(".calculation-steps")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "300 kmの円軌道に合わせる", exact: true })
+    .click();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(steps.last().locator(".calculation-result")).toHaveText(
+    "目標円軌道を達成",
+  );
+  await openLab(page, "01 軌道の基本");
+  await page
+    .getByRole("button", { name: "800 kmで噴射なし", exact: true })
+    .click();
+  await expect(steps.last().locator(".calculation-result")).toHaveText(
+    "遠点高度 800 km",
+  );
+  await openLab(page, "05 スウィングバイ");
+  await expect(steps.last().locator(".calculation-result")).toHaveText(/^\+/);
+  await page
+    .getByRole("button", { name: "時計回りに通過", exact: true })
+    .click();
+  await expect(steps.last().locator(".calculation-result")).toHaveText(/^-/);
+  await page
+    .getByRole("button", { name: /惑星から十分遠い入出の相対速度の大きさ/ })
+    .click();
+  await page
+    .getByRole("button", { name: "結果を確かめる", exact: true })
+    .click();
+  await expect(
+    page.getByText("実験の到達条件も達成しました。", { exact: true }),
+  ).toBeVisible();
+});
+
 test("empty/out-of-range input is explained and cannot silently become a valid result", async ({
   page,
 }) => {
@@ -264,39 +375,60 @@ test("favicon and production assets load from the application directory", async 
   }
 });
 
-test('the exact escape boundary is unbound and never a successful elliptical-orbit task', async ({ page }) => {
-  await openLab(page, '01 軌道の基本');
-  await page.getByRole('spinbutton', { name: '待機軌道高度', exact: true }).fill('150');
-  await page.getByRole('spinbutton', { name: '接線方向の噴射', exact: true }).fill('3.2366710929717932');
-  await expect(page.locator('.outcome strong')).toHaveText('脱出軌道');
-  await expect(page.locator('.outcome')).toHaveClass(/notice/);
-  await page.getByRole('button', { name: /噴射した場所の反対側/ }).click();
-  await page.getByRole('button', { name: '結果を確かめる', exact: true }).click();
-  await expect(page.getByText('実験の到達条件も達成しました。', { exact: true })).toHaveCount(0);
-  await expect(page.locator('.progress-label strong')).toContainText('00');
+test("the exact escape boundary is unbound and never a successful elliptical-orbit task", async ({
+  page,
+}) => {
+  await openLab(page, "01 軌道の基本");
+  await page
+    .getByRole("spinbutton", { name: "待機軌道高度", exact: true })
+    .fill("150");
+  await page
+    .getByRole("spinbutton", { name: "接線方向の噴射", exact: true })
+    .fill("3.2366710929717932");
+  await expect(page.locator(".outcome strong")).toHaveText("脱出軌道");
+  await expect(page.locator(".outcome")).toHaveClass(/notice/);
+  await page.getByRole("button", { name: /噴射した場所の反対側/ }).click();
+  await page
+    .getByRole("button", { name: "結果を確かめる", exact: true })
+    .click();
+  await expect(
+    page.getByText("実験の到達条件も達成しました。", { exact: true }),
+  ).toHaveCount(0);
+  await expect(page.locator(".progress-label strong")).toContainText("00");
 });
 
-test('typing a decimal preserves the draft through the parent update', async ({ page }) => {
-  await openLab(page, '01 軌道の基本');
-  const burn = page.getByRole('spinbutton', { name: '接線方向の噴射', exact: true });
-  await burn.fill('');
-  await expect(page.getByRole('alert')).toBeVisible();
-  await burn.pressSequentially('0.', { delay: 70 });
-  await burn.pressSequentially('125', { delay: 70 });
-  await expect(burn).toHaveValue('0.125');
-  await expect(page.getByRole('alert')).toHaveCount(0);
-  await expect(page.locator('.predicted-path')).toHaveAttribute('d', /^M/);
+test("typing a decimal preserves the draft through the parent update", async ({
+  page,
+}) => {
+  await openLab(page, "01 軌道の基本");
+  const burn = page.getByRole("spinbutton", {
+    name: "接線方向の噴射",
+    exact: true,
+  });
+  await burn.fill("");
+  await expect(page.getByRole("alert")).toBeVisible();
+  await burn.pressSequentially("0.", { delay: 70 });
+  await burn.pressSequentially("125", { delay: 70 });
+  await expect(burn).toHaveValue("0.125");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.locator(".predicted-path")).toHaveAttribute("d", /^M/);
 });
 
-test('the capture preset clears an invalid burn draft and restores the target orbit', async ({ page }) => {
-  await openLab(page, '04 火星で止まる');
-  const burn = page.getByRole('spinbutton', { name: '減速Δv', exact: true });
-  await burn.fill('');
-  await expect(page.getByRole('alert')).toBeVisible();
-  await expect(page.locator('.predicted-path')).toHaveCount(0);
-  await page.getByRole('button', { name: '円軌道化に必要なΔvを設定', exact: true }).click();
-  await expect(page.getByRole('alert')).toHaveCount(0);
-  await expect(burn).not.toHaveValue('');
-  await expect(page.locator('.outcome strong')).toHaveText('安全な目標円軌道を達成');
-  await expect(page.locator('.predicted-path')).toHaveAttribute('d', /^M/);
+test("the capture preset clears an invalid burn draft and restores the target orbit", async ({
+  page,
+}) => {
+  await openLab(page, "04 火星で止まる");
+  const burn = page.getByRole("spinbutton", { name: "減速Δv", exact: true });
+  await burn.fill("");
+  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.locator(".predicted-path")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "円軌道化に必要なΔvを設定", exact: true })
+    .click();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(burn).not.toHaveValue("");
+  await expect(page.locator(".outcome strong")).toHaveText(
+    "安全な目標円軌道を達成",
+  );
+  await expect(page.locator(".predicted-path")).toHaveAttribute("d", /^M/);
 });

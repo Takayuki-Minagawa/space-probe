@@ -22,12 +22,12 @@ export const CONSTANT_SOURCES = [
       "AU [km], DAY [s], muSun / muEarth [km³/s²]; DE440, converted from SI where needed",
   },
   {
-    url: "https://ssd.jpl.nasa.gov/sats/phys_par/",
+    url: "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/gm_de431.tpc",
     accessed: "2026-10-27",
-    values: "muMars [km³/s²], Mars alone, not Mars system",
+    values: "muMars [km³/s²], rounded BODY499_GM (MAR097), Mars alone",
   },
   {
-    url: "./惑星探査シミュレーター_AI開発指示書.md",
+    url: "https://github.com/Takayuki-Minagawa/space-probe/blob/main/docs/MODEL_SPEC.md",
     accessed: "2026-10-27",
     values:
       "Fixed educational radii [km], circular Mars orbit [AU]; safety altitude is a teaching constraint, not an operational limit",

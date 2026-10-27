@@ -7,6 +7,7 @@ import type { Parameters } from "./simulation";
 import OrbitDiagram, { SpeedChart } from "./OrbitDiagram";
 import type { Layers } from "./OrbitDiagram";
 import { Icon, ParameterInput } from "./components";
+import CalculationWalkthrough from "./CalculationWalkthrough";
 
 function saved(key: string, fallback: string) {
   try {
@@ -162,6 +163,20 @@ export default function App() {
     setPlaying(false);
     setEvaluated(false);
     if (lab === "flyby") setVisitedSides([1]);
+  };
+  const applyExample = (patch: Partial<Parameters>) => {
+    setSettings((s) => ({ ...s, [lab]: { ...s[lab], ...patch } }));
+    setInvalid({});
+    setRevision((r) => r + 1);
+    setPlaying(false);
+    setEvaluated(false);
+    setTime(isMission ? H.flightTime : lab === "flyby" ? -7200 : 0);
+    setLayers((s) => ({ ...s, reference: true }));
+    if (lab === "flyby") {
+      const side = patch.side ?? p.side;
+      const onlySide = Object.keys(patch).every((key) => key === "side");
+      setVisitedSides((s) => (onlySide ? [...new Set([...s, side])] : [side]));
+    }
   };
   const field = (
     key: keyof Parameters,
@@ -498,8 +513,8 @@ export default function App() {
             </h1>
             <p>
               {tr(
-                "地球から火星へ。小さな実験で、宇宙の旅のしくみをひもとこう。",
-                "From Earth to Mars. Discover how space travel works, one experiment at a time.",
+                "地球から火星へ。出発時期と噴射量を変え、軌道・到着位置・必要なΔvを比べよう。",
+                "From Earth to Mars. Change departure timing and burns; compare the orbit, arrival position, and required Δv.",
               )}
             </p>
           </div>
@@ -547,6 +562,45 @@ export default function App() {
             {tr("円軌道・二体近似", "Circular / two-body model")}
           </span>
         </section>
+        {isMission && (
+          <section
+            className="first-experiment"
+            aria-label={tr("はじめての実験", "First experiment")}
+          >
+            <div>
+              <strong>
+                {tr(
+                  "まずは、到着する瞬間を比べよう。",
+                  "Start by comparing the moment of arrival.",
+                )}
+              </strong>
+              <p>
+                {tr(
+                  "参考設定 → 先行角を10°変更 → 火星とのずれを確認。約259日の飛行時間は同じです。",
+                  "Reference → shift the lead angle by 10° → inspect the miss. The flight still takes about 259 days.",
+                )}
+              </p>
+            </div>
+            <div className="first-experiment-actions">
+              <button onClick={() => applyExample(defaults("transfer"))}>
+                {tr("参考設定の到着を見る", "See reference arrival")}
+              </button>
+              <button
+                onClick={() =>
+                  applyExample({
+                    ...defaults("transfer"),
+                    phase: deg(H.phaseAngle) + 10,
+                  })
+                }
+              >
+                {tr("先行角を10°変えて比べる", "Compare a 10° phase shift")}
+              </button>
+              <a href="#calculation-walkthrough">
+                {tr("計算の流れを見る", "Follow the calculation")} ↓
+              </a>
+            </div>
+          </section>
+        )}
         <div className="workspace">
           <section
             className="simulation-panel"
@@ -1038,6 +1092,16 @@ export default function App() {
                 "This is an independent local experiment, not a continuously connected navigation solution. Mars capture uses the verified reference arrival v∞.",
               )}
         </p>
+        <div id="calculation-walkthrough">
+          <CalculationWalkthrough
+            lab={lab}
+            parameters={p}
+            simulation={valid ? sim : null}
+            reference={reference}
+            lang={lang}
+            onPreset={applyExample}
+          />
+        </div>
         <div className="learning-grid">
           <section className="lesson-panel">
             <div className="lesson-heading">
@@ -1126,7 +1190,7 @@ export default function App() {
           </section>
           <section className="telemetry-panel">
             <div className="lesson-heading">
-              <span className="eyebrow">LIVE TELEMETRY</span>
+              <span className="eyebrow">{tr("計算結果", "MODEL VALUES")}</span>
               <span className="mini-tag">
                 {isMission
                   ? tr("太陽中心", "SUN-CENTERED")
@@ -1235,7 +1299,7 @@ export default function App() {
           target="_blank"
           rel="noreferrer"
         >
-          NASA / JPL <span>↗</span>
+          {tr("参考資料：NASA / JPL", "References: NASA / JPL")} <span>↗</span>
         </a>
       </footer>
       <div className="persistent-notice">

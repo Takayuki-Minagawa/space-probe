@@ -371,6 +371,10 @@ export const manual: Localized<Manual> = {
         body: "軌道の基本：噴射量0と+0.5 km/sを比較。地球から出発：v∞を固定し待機高度200と1,000 kmを比較。火星へ向かう：到着時のずれを10,000 km以下に調整。火星で止まる：減速0と約2.09138 km/sを比較。スウィングバイ：他の条件を固定して通過側を切り替えます。",
       },
       {
+        title: "計算の流れと比較",
+        body: "各章の計算欄で、入力値・式への代入・結果・参考設定との差を順に確認できます。試す例を選ぶと条件と参考軌道の表示が切り替わります。火星への遷移では到着時点を表示します。先行角や待ち時間で遭遇位置は変わりますが、このホーマン遷移の飛行時間は変わりません。月への飛行は現在の計算対象に含まれません。",
+      },
+      {
         title: "何をもって成功とする？",
         body: "惑星間の遭遇は、規定の到着時刻で位置のずれが10,000 km以下という教材上の判定です。火星の目標円軌道は、束縛され、全軌道の高度が100 km以上、近点・遠点の中心距離が目標半径の1%以内で判定します。局所実験の成功で、惑星間の非遭遇が修正されることはありません。",
       },
@@ -412,6 +416,10 @@ export const manual: Localized<Manual> = {
       {
         title: "Five experiments",
         body: "Orbit basics: compare burns of 0 and +0.5 km/s. Leave Earth: fix v∞ and compare parking altitudes of 200 and 1,000 km. Journey to Mars: bring the arrival miss distance below 10,000 km. Capture at Mars: compare braking of 0 and about 2.09138 km/s. Gravity assist: keep other conditions fixed and switch passing side.",
+      },
+      {
+        title: "Follow the calculation",
+        body: "Each lab shows inputs, numerical substitution, results, and differences from the reference. Choose an example to apply its settings and show the reference overlay. Transfer examples jump to arrival. Phase and waiting time change the encounter geometry, not this Hohmann transfer’s flight duration. Lunar flights are not included in the current model.",
       },
       {
         title: "What counts as success?",

@@ -1,57 +1,74 @@
-# 惑星航路ラボ — 調査と実装計画
+# 開発ガイド / Development guide
 
-作成日: 2026-10-27。原案: [AI開発指示書](../惑星探査シミュレーター_AI開発指示書.md)。本書は実装前の調査結果と受入基準を記録する。
+惑星航路ラボの構成、検証方法、公開手順を説明します。学習内容と物理の仮定は [モデル仕様](MODEL_SPEC.md)、利用方法は [README](../README.md) を参照してください。
 
-## 調査から決めたこと
+This guide covers architecture, validation, and deployment. See the [model specification](MODEL_SPEC.md) for physics and the [README](../README.md) for usage.
 
-1. **教材の中心を地球→火星ホーマン遷移に置く。** NASA/JPLの教材は約259日の飛行と約44度の火星先行角を説明している。到達判定は線の交差ではなく同時刻の位置差とする。局所の地球脱出・火星捕獲・スウィングバイを、接続済み航法解として扱わない。
-2. **定数は固定し、単位をコードで統一する。** JPLの太陽GMはSI表記からkm³/s²へ換算する。Earth GMとMars system GMを混同しない。指示書のMars単体GMを採用し、モデルバージョンと出典を保持する。
-3. **TypeScript + React + Viteで静的配信する。** API・認証・CDN・外部フォント・画像サービスに依存しない。Viteの相対base `./` を使い、GitHub Pagesの `/space-probe/` 配下とカスタムドメイン双方でアセットを参照する。アプリ内の章移動にサーバールーティングを要求しない。
-4. **解析伝播を物理の唯一の正とする。** 二体の位置・速度を初期条件と仮想時刻から求める。描画フレーム数に依存する数値積分を行わず、シークを再現可能にする。軌跡は条件変更時に約180点を計算し点数を制限する。MVPの限定した計算量では同期計算を基本とし、計測で操作遅延が確認された場合にWorkerへ分離する。Canvas推奨に対して本実装はSVGを採用する。点数が少なく、ラベル・線種・レスポンシブ表示とアクセシビリティを一つの描画層で保ちやすいためであり、物理計算に画面座標は使わない。
-5. **独自の小さい物理モジュールを検証する。** GitHub調査ではpoliastroはarchive済み、ESA pykepはC++/Python向け、Astronomy Engineは実天体暦が主用途。本MVPには大きい計算依存を導入せず、各プロジェクトは設計比較の参考に限定する。コードの転載はしない。
-6. **公開前の検査と公開権限を分ける。** CIはPR・pushで実行。Pagesはmainへのpushまたはmain上での手動実行に限定。検査→ビルド→distアップロード→環境 `github-pages` へのデプロイを行う。公式Actionsの参照は確認したリリースのcommit SHAに固定する。
+## 構成 / Architecture
 
-根拠URL・ライセンスは [SOURCES.md](SOURCES.md) に記録する。
+| ファイル / File                  | 役割 / Responsibility                                                                                                     |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `src/physics.ts`                 | 単位・定数・二体伝播・遷移・噴射・衝突の計算。 / Units, constants, propagation, transfer, burns, and impacts.             |
+| `src/simulation.ts`              | 実験の入力、参考設定、時間範囲、軌跡サンプル。 / Experiment parameters, reference settings, time spans, and path samples. |
+| `src/learning.ts`                | 日英の課題・解説・マニュアル。 / Bilingual challenges, explanations, and guide.                                           |
+| `src/App.tsx`                    | 操作、入力検証、時間制御、表示状態。 / Interaction, input validation, time controls, and view state.                      |
+| `src/CalculationWalkthrough.tsx` | 計算過程と参考設定との比較。 / Calculation steps and reference comparisons.                                               |
+| `src/OrbitDiagram.tsx`           | 同じ物理状態に基づくSVG軌道図と速度グラフ。 / SVG trajectories and speed chart from the same physical state.              |
+| `src/components.tsx`             | 共通入力部品とアイコン。 / Shared inputs and icons.                                                                       |
+| `e2e/app.spec.ts`                | 利用者の操作を通したブラウザー検証。 / Browser checks of user interactions.                                               |
 
-## 実装順序と受入基準
+物理計算はUIから独立した純粋関数です。初期条件と仮想時刻から状態を求めるため、画面の大きさや描画頻度で軌道は変わりません。軌跡は181点に制限し、再生中に増やし続けません。SVGは線種、ラベル、数値表と組み合わせて表示します。
 
-| 段階 | 実装 | 確認 |
-| --- | --- | --- |
-| 1. 基盤 | 固定依存・lockfile、TypeScript、Vite、テーマ変数、日英辞書 | 型検査・lint・静的ビルド |
-| 2. 物理 | 定数、単位変換、ホーマン遷移、局所噴射、軌道要素、解析伝播、スウィングバイ | 独立した期待値と照合、エネルギー・角運動量保存、異常入力 |
-| 3. 主教材 | 地球→火星、位相角・待ち時間、到着位置差、参考設定の比較 | 約258.8658日・44.3442度、正解／非遭遇の判定 |
-| 4. 局所実験 | 軌道基礎、地球脱出、火星捕獲、地球スウィングバイ | 座標系・時刻を明示、減速不足・衝突・安全高度を区別 |
-| 5. 学習操作 | 5課題、予想・ヒント・理由、再生／停止／ステップ／リセット／シーク／イベント移動 | 同一仮想時刻の再現、噴射二重適用なし |
-| 6. 仕上げ | 日英UI・簡易マニュアル、ライト／ダーク、SVGファビコン、モバイル、キーボード | 数値入力・単位・フォーカス、低モーション、横あふれ・欠落翻訳 |
-| 7. 公開準備 | README・出典、CI・Pagesワークフロー | unit/UI/E2E・本番build、Pagesサブパスでのアセット |
+Physics uses pure functions independent of the UI. Initial conditions and simulated time determine the state, regardless of viewport or frame rate. Paths are bounded to 181 samples. SVG views use line styles, labels, and numeric tables.
 
-## 画面と状態
+言語とテーマのみを `localStorage` に保存します。保存が利用できなくてもアプリは動作します。実験条件・課題進捗はメモリー内の状態です。アプリにログイン機能、アクセス解析、外部計算APIはありません。
 
-- 横長画面: 章選択 → 大きい軌道図＋近接する操作欄 → 時間軸・主要数値・解説。
-- 狭い画面: 軌道図 → 時間操作 → パラメータ・課題。横スクロールを前提にしない。
-- 初期表示は日本語。表示言語・配色はローカルストレージで保持し、読み書きできなくても利用可能にする。
-- 初期状態は停止。`prefers-reduced-motion` を尊重し、静止軌跡とステップ操作で学べる。
-- 状態は章・モデルバージョン・入力・仮想時刻・表示設定から成る。入力変更時は停止して時刻を戻し、古い条件の結果を残さない。
-- 各値の天体基準・単位を表示。惑星マーカーの見やすさのための拡大と、衝突判定用の物理半径を分ける。
+Only language and theme are stored in `localStorage`; storage is optional. Experiment settings and progress are held in memory. The application includes no login, analytics, or external calculation API.
 
-## 数学と判定
+## 検証 / Validation
 
-- 内部単位: km、s、rad、km/s、km³/s²。高度は中心距離と区別する。
-- 参考値は指示書10節を固定期待値として相対誤差0.1%以内で検証する。
-- 無噴射伝播の保存量は相対誤差 `1e-8` を目標に検証し、零付近は絶対誤差を使う。
-- 位相角課題: 到着時刻の距離誤差 ≤10,000 km。教材上の遭遇許容値であり、現実の作用圏進入判定ではない。
-- 火星捕獲: 噴射後の状態ベクトルから束縛・近点・遠点を再計算。束縛だけでは成功とせず、安全高度・目標軌道への誤差も評価する。
-- スウィングバイ: 入出の漸近 `|v∞|` 一致、通過側による太陽中心の増速／減速、旋回角の上限を確認する。近点での速度は漸近速度より大きい。
-- 不正入力・未収束・衝突・範囲外は理由を示し、成功表示に置き換えない。
+```sh
+npm ci
+npm run typecheck
+npm run lint
+npm test
+npm run build
+npx playwright install --with-deps chromium
+npm run test:e2e
+```
 
-## 検証と公開の境界
+`--with-deps` はLinuxでブラウザーのシステム依存も準備します。Windowsでインストール済みEdgeを使う場合は次のように実行できます。
 
-物理単体テスト、UIコンポーネントテスト、ブラウザE2Eを分離する。実施できた環境・コマンド・結果のみをREADMEへ記録する。GitHub Actionsの実行と本番公開は、このローカル作業中には行わない。ワークフローをmainへ反映後、リポジトリ設定でPagesのSourceをGitHub Actionsにすれば公開できる構成にする。
+`--with-deps` also installs browser system dependencies on Linux. To use an installed Edge browser on Windows:
 
-## 今回の範囲外
+```powershell
+$env:PLAYWRIGHT_CHANNEL = 'msedge'
+npm run test:e2e -- --workers=2
+Remove-Item Env:PLAYWRIGHT_CHANNEL
+```
 
-実暦打上げ窓、Lambertソルバー、多天体・3D・有限燃焼・地表打上げ・大気抵抗、精密な作用圏接続、実運用航法、経由惑星の自動最適化、ログイン、PWA、継続的な個人学習データ収集。将来の拡張時には既存の近似モデルと明確に区別する。
+| 検証層 / Layer       | 主な確認内容 / Coverage                                                                                                                                                                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 物理 / Physics       | 固定参考値との照合、保存量、軌道の境界、衝突、捕獲、スウィングバイ、異常入力。 / Reference values, invariants, conic boundaries, impact, capture, flyby, and invalid inputs.                                       |
+| 入力部品 / Inputs    | 数値の編集中状態、範囲検査、無効値からの復帰。 / Numeric drafts, bounds, and recovery.                                                                                                                             |
+| ブラウザー / Browser | 全章と課題、時間操作、言語とテーマ、簡易マニュアル、キーボード、低モーション、横あふれ、アセット読み込み。 / Labs, challenges, time controls, locale/theme, guide, keyboard, reduced motion, overflow, and assets. |
 
-## 実施結果（2026-10-27）
+参考値は相対誤差0.1%以内、無噴射区間の保存量は `1e-8` を基準に検査します。試験条件と境界ケースはテストコードに記載しています。これらは教育モデルの実装に対する検査であり、実ミッションの精度保証ではありません。
 
-段階1〜7のローカル実装・検証を実施。型検査・lint・70件の単体/UIテスト・本番ビルドに成功。Edgeのデスクトップ／モバイルエミュレーションで22件のE2Eに成功し、全5課題の達成操作、日英切替とマニュアル、テーマ、異常入力と復帰、小数入力、脱出境界、時間操作、低モーションを確認した。実際のGitHub Actions実行と公開は未実施。環境・計算性能と確認範囲は [README](../README.md#検証状況--validation-status) に記録。
+Reference checks use 0.1% relative tolerance; unforced invariants use `1e-8`. Conditions and boundary cases are recorded in the tests. These checks validate the educational implementation, not operational mission accuracy.
+
+## GitHub Pages / Deployment
+
+[CI](../.github/workflows/ci.yml) はPRと `main` へのpushで検査します。[公開ワークフロー](../.github/workflows/pages.yml) は `main` 上での検査成功後、`dist/` を `github-pages` 環境へ配信します。PRのCIに公開権限は付与していません。
+
+[CI](../.github/workflows/ci.yml) checks pull requests and pushes to `main`. The [Pages workflow](../.github/workflows/pages.yml) publishes `dist/` to the `github-pages` environment after checks pass on `main`. Pull-request CI has no deployment permissions.
+
+公式Actionsはcommit SHAに固定しています。更新時は公式リリースとSHAの対応を確認します。Viteの相対base `./` により、プロジェクトのサブディレクトリ配信に対応します。Pagesにアップロードするのはビルド成果物だけです。READMEや開発文書はGitHubリポジトリ側の公開資料です。
+
+Official Actions are pinned to commit SHAs; updates should match verified releases. Vite’s relative base `./` supports project subdirectories. Only build output is uploaded to Pages; the README and development documents are public repository documentation.
+
+## 拡張の考え方 / Extension priorities
+
+機能を増やす際は、「どの条件を変え、どの結果から学べるか」を明確にし、計算モデル・説明・課題・検証を一緒に更新します。月への遷移や実暦への対応には、それぞれ適したモデルと検証が必要です。既存の独立局所実験を、そのまま連続した航法解として扱うことはできません。
+
+New features should identify which input learners change and what result they can learn from, updating physics, explanations, challenges, and tests together. Lunar transfers and calendar ephemerides require appropriate models and validation. Existing local labs cannot simply be treated as a continuous navigation solution.
