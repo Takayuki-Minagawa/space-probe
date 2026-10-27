@@ -10,26 +10,26 @@
   margin-bottom: 22px;
 }
 .solar-intro h2 {
-  font-size: clamp(24px, 3vw, 36px);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
   line-height: 1.5;
   margin: 9px 0 8px;
   letter-spacing: 0.025em;
 }
 .solar-intro p {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 1.0625rem;
   max-width: 68ch;
 }
 .solar-model-badge {
   flex-shrink: 0;
   text-align: right;
   color: var(--accent);
-  font-size: 18px;
+  font-size: 1.375rem;
 }
 .solar-model-badge small {
   display: block;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.875rem;
   margin-top: 9px;
 }
 .solar-presets {
@@ -43,7 +43,7 @@
   border-radius: 6px;
   padding: 10px 14px;
   background: var(--panel);
-  font-size: 12px;
+  font-size: 1rem;
   min-height: 42px;
 }
 .solar-presets button span {
@@ -57,7 +57,7 @@
 }
 .solar-workspace {
   display: grid;
-  grid-template-columns: minmax(260px, 310px) minmax(0, 1fr);
+  grid-template-columns: 350px minmax(0, 1fr);
   gap: 20px;
   align-items: start;
 }
@@ -74,17 +74,18 @@
 }
 .solar-settings-heading {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
 }
 .solar-settings-heading h3 {
-  font-size: 14px;
+  font-size: 1.125rem;
 }
 .solar-reset {
   color: var(--accent);
-  font-size: 10px;
+  font-size: 0.875rem;
   background: transparent;
   padding: 6px 0;
   min-height: 32px;
@@ -102,7 +103,7 @@
 }
 .solar-selectors label {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.9375rem;
   min-width: 0;
 }
 .solar-selectors select {
@@ -115,11 +116,11 @@
   min-height: 42px;
   padding: 7px 6px;
   margin-top: 7px;
-  font-size: 13px;
+  font-size: 1.0625rem;
 }
 .solar-control-note {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.875rem;
   line-height: 1.8;
   margin: 10px 0 17px;
 }
@@ -128,32 +129,35 @@
 }
 .solar-settings .parameter-heading {
   align-items: start;
+  flex-wrap: wrap;
   gap: 8px;
 }
 .solar-settings .parameter-heading > label {
-  font-size: 11px;
-  max-width: 120px;
+  font-size: 0.9375rem;
+  max-width: 160px;
   line-height: 1.6;
 }
 .solar-settings .parameter-value input {
-  width: 85px;
+  font-size: 1rem;
+  width: 100px;
 }
 .solar-control-divider {
   border-top: 1px solid var(--line);
   margin: 23px 0 4px;
   padding-top: 17px;
-  font-size: 11px;
+  font-size: 0.9375rem;
   color: var(--accent);
 }
 .solar-plot-heading {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   padding: 21px 25px 0;
   gap: 15px;
 }
 .solar-plot-heading h3 {
-  font-size: 22px;
+  font-size: 1.625rem;
   margin-top: 7px;
 }
 .solar-plot-heading h3 span {
@@ -163,7 +167,7 @@
 }
 .solar-direction {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.9375rem;
   text-align: right;
 }
 .solar-diagram {
@@ -241,7 +245,7 @@
   stroke-width: 0.75;
 }
 .solar-svg-label {
-  font-size: 12px;
+  font-size: 16px;
   fill: var(--ink);
   paint-order: stroke;
   stroke: var(--panel);
@@ -249,7 +253,7 @@
   stroke-linejoin: round;
 }
 .solar-svg-note {
-  font-size: 11px;
+  font-size: 14px;
   fill: var(--muted);
 }
 .solar-distance-line {
@@ -273,7 +277,7 @@
   flex-wrap: wrap;
   padding: 0 25px 18px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.875rem;
 }
 .solar-legend > span {
   display: inline-flex;
@@ -302,10 +306,11 @@
 }
 .solar-timeline-heading {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 16px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.9375rem;
 }
 .solar-timeline-heading strong {
   color: var(--ink);
@@ -332,7 +337,7 @@
   border-radius: 5px;
   padding: 8px 10px;
   min-height: 36px;
-  font-size: 11px;
+  font-size: 0.9375rem;
 }
 .solar-playback .solar-play {
   background: var(--accent);
@@ -341,20 +346,20 @@
 }
 .solar-playback > span {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.875rem;
   margin-left: auto;
 }
 .solar-playback strong {
   color: var(--ink);
   display: block;
-  font-size: 12px;
+  font-size: 1rem;
   margin-top: 5px;
   text-align: right;
   font-weight: 500;
 }
 .solar-current-distance {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.875rem;
   margin-top: 13px;
 }
 .solar-current-distance strong {
@@ -377,11 +382,11 @@
   flex-shrink: 0;
 }
 .solar-meeting strong {
-  font-size: 12px;
+  font-size: 1rem;
   font-weight: 500;
 }
 .solar-meeting p {
-  font-size: 10px;
+  font-size: 0.875rem;
   color: var(--muted);
   margin-top: 4px;
 }
@@ -414,24 +419,24 @@
   display: block;
 }
 .solar-metric > span {
-  font-size: 10px;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 .solar-metric > strong {
-  font-size: clamp(16px, 1.6vw, 21px);
+  font-size: clamp(1.25rem, 1.8vw, 1.5625rem);
   font-weight: 500;
   margin-top: 8px;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
 .solar-metric > small {
-  font-size: 10px;
+  font-size: 0.875rem;
   color: var(--muted);
   margin-top: 7px;
 }
 .solar-budget-note {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.9375rem;
   line-height: 1.9;
   margin-top: 13px;
 }
@@ -449,11 +454,11 @@
   gap: 15px;
 }
 .solar-invalid h3 {
-  font-size: 19px;
+  font-size: 1.4375rem;
   color: var(--notice);
 }
 .solar-invalid p {
-  font-size: 12px;
+  font-size: 1rem;
   color: var(--muted);
 }
 .solar-calculations,
@@ -463,24 +468,25 @@
 }
 .solar-section-heading {
   display: flex;
+  flex-wrap: wrap;
   align-items: end;
   justify-content: space-between;
   gap: 20px;
   margin-bottom: 18px;
 }
 .solar-section-heading h3 {
-  font-size: 22px;
+  font-size: 1.625rem;
   margin-top: 8px;
   line-height: 1.5;
 }
 .solar-section-heading > p {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.9375rem;
   max-width: 50ch;
 }
 .solar-equations {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   border: 1px solid var(--line);
   background: var(--panel);
   border-radius: 10px;
@@ -495,30 +501,36 @@
 .solar-equations article + article {
   border-left: 1px solid var(--line);
 }
+.solar-equations article:nth-child(odd) {
+  border-left: 0;
+}
+.solar-equations article:nth-child(n + 3) {
+  border-top: 1px solid var(--line);
+}
 .solar-step-number {
   color: var(--accent);
-  font-size: 11px;
+  font-size: 0.9375rem;
 }
 .solar-equations h4 {
-  font-size: 13px;
+  font-size: 1.0625rem;
   line-height: 1.75;
   margin: 8px 0 9px;
   font-weight: 500;
 }
 .solar-equations p {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.9375rem;
   min-height: 60px;
 }
 .solar-equations .math-formula {
-  font-size: 12px;
+  font-size: 1rem;
   margin-top: 8px;
   padding: 12px 0;
 }
 .solar-equations article > strong {
   display: block;
   font-weight: 500;
-  font-size: 17px;
+  font-size: 1.3125rem;
   color: var(--accent);
   margin-top: auto;
   padding-top: 15px;
@@ -526,7 +538,7 @@
 .solar-equations small {
   display: block;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.875rem;
   line-height: 1.8;
   margin-top: 10px;
 }
@@ -540,7 +552,7 @@
   margin-bottom: 8px;
 }
 .solar-capture-fraction {
-  font-size: 30px;
+  font-size: 2.125rem;
   font-variant-numeric: tabular-nums;
   color: var(--accent);
 }
@@ -555,12 +567,12 @@
   min-width: 0;
 }
 .solar-capture-content .math-formula {
-  font-size: 13px;
+  font-size: 1.0625rem;
 }
 .solar-capture-result > strong {
   display: block;
   color: var(--accent);
-  font-size: 16px;
+  font-size: 1.25rem;
   font-weight: 500;
   margin-bottom: 16px;
 }
@@ -569,9 +581,10 @@
 }
 .solar-capture-result dl > div {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 20px;
-  font-size: 11px;
+  font-size: 0.9375rem;
   border-bottom: 1px solid var(--line);
   padding: 10px 0;
 }
@@ -584,7 +597,7 @@
   text-align: right;
 }
 .solar-capture-result p {
-  font-size: 11px;
+  font-size: 0.9375rem;
   color: var(--muted);
   margin-top: 14px;
 }
@@ -600,7 +613,7 @@
   width: 100%;
   border-collapse: collapse;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 1rem;
 }
 .solar-table-scroll th,
 .solar-table-scroll td {
@@ -610,7 +623,7 @@
   font-weight: 400;
 }
 .solar-table-scroll thead th {
-  font-size: 10px;
+  font-size: 0.875rem;
   color: var(--muted);
   background: var(--raised);
 }
@@ -636,7 +649,7 @@
   border-top: 1px solid var(--line);
   padding-top: 20px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 1rem;
 }
 .solar-assumptions summary {
   color: var(--accent);
@@ -667,7 +680,7 @@
     display: none;
   }
   .solar-workspace {
-    grid-template-columns: minmax(250px, 285px) minmax(0, 1fr);
+    grid-template-columns: 350px minmax(0, 1fr);
     gap: 14px;
   }
   .solar-plot-heading {
@@ -689,7 +702,7 @@
     padding: 16px 18px;
   }
 }
-@media (max-width: 800px) {
+@media (max-width: 1000px) {
   .solar-workspace {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -717,7 +730,7 @@
     max-width: none;
   }
   .solar-settings .parameter-value input {
-    width: 75px;
+    width: 100px;
   }
   .solar-settings .parameter {
     margin-top: 19px;
@@ -731,7 +744,7 @@
     max-width: none;
   }
   .solar-plot-heading h3 {
-    font-size: 22px;
+    font-size: 1.625rem;
   }
   .solar-playback > span {
     width: auto;
@@ -747,11 +760,17 @@
   }
 }
 @media (max-width: 480px) {
+  .solar-svg-label {
+    font-size: 24px;
+  }
+  .solar-svg-note {
+    font-size: 20px;
+  }
   .solar-intro h2 {
-    font-size: 27px;
+    font-size: 1.875rem;
   }
   .solar-intro p {
-    font-size: 12px;
+    font-size: 1rem;
   }
   .solar-presets {
     display: grid;
@@ -759,13 +778,14 @@
     gap: 7px;
   }
   .solar-presets button {
-    font-size: 11px;
+    font-size: 0.9375rem;
     padding: 9px 6px;
   }
   .solar-presets button span {
     padding: 0 3px;
   }
   .solar-settings {
+    grid-template-columns: minmax(0, 1fr);
     padding: 18px 16px;
     gap: 0 15px;
   }
@@ -781,25 +801,25 @@
     display: block;
   }
   .solar-settings .parameter-value input {
-    width: 83px;
+    width: 100px;
   }
   .solar-settings .parameter-bounds {
-    font-size: 9px;
+    font-size: 0.8125rem;
   }
   .solar-settings .parameter-unit {
-    font-size: 10px;
+    font-size: 0.875rem;
   }
   .solar-plot-heading {
     padding: 18px 16px 0;
   }
   .solar-plot-heading h3 {
-    font-size: 20px;
+    font-size: 1.5rem;
   }
   .solar-plot-heading .section-kicker {
-    font-size: 8px;
+    font-size: 0.8125rem;
   }
   .solar-direction {
-    font-size: 10px;
+    font-size: 0.875rem;
     max-width: 100px;
   }
   .solar-legend {
@@ -811,7 +831,7 @@
   }
   .solar-timeline-heading {
     gap: 5px;
-    font-size: 10px;
+    font-size: 0.875rem;
   }
   .solar-timeline-heading strong {
     display: block;
@@ -822,7 +842,7 @@
   }
   .solar-playback button {
     padding: 8px;
-    font-size: 10px;
+    font-size: 0.875rem;
   }
   .solar-playback > span {
     width: 100%;
@@ -837,13 +857,13 @@
     padding: 11px;
   }
   .solar-meeting strong {
-    font-size: 11px;
+    font-size: 0.9375rem;
   }
   .solar-metric {
     padding: 15px 13px;
   }
   .solar-metric > strong {
-    font-size: 16px;
+    font-size: 1.25rem;
     line-height: 1.55;
   }
   .solar-metric > span {
@@ -851,13 +871,13 @@
     line-height: 1.5;
   }
   .solar-metric > small {
-    font-size: 9px;
+    font-size: 0.8125rem;
   }
   .solar-flight > .solar-budget-note {
     padding: 1px 16px 18px;
   }
   .solar-section-heading h3 {
-    font-size: 20px;
+    font-size: 1.5rem;
   }
   .solar-equations {
     grid-template-columns: minmax(0, 1fr);
@@ -867,7 +887,7 @@
     border-top: 1px solid var(--line);
   }
   .solar-equations .math-formula {
-    font-size: 13px;
+    font-size: 1.0625rem;
   }
   .solar-equations article {
     padding: 19px;
@@ -879,7 +899,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
   .solar-capture-fraction {
-    font-size: 25px;
+    font-size: 1.75rem;
   }
   .solar-table-scroll th,
   .solar-table-scroll td {
@@ -905,12 +925,12 @@
   margin: 22px 0;
 }
 :is(.lunar-shared-equation, .planetary-shared-equation) > p {
-  font-size: 12px;
+  font-size: 1rem;
   color: var(--muted);
 }
 :is(.lunar-shared-equation, .planetary-shared-equation) .math-formula {
   min-width: 0;
-  font-size: 12px;
+  font-size: 1rem;
 }
 :is(.lunar-direction-cards, .planetary-direction-cards) {
   display: grid;
@@ -928,13 +948,13 @@
   gap: 12px;
 }
 :is(.lunar-direction-cards, .planetary-direction-cards) h4 {
-  font-size: 14px;
+  font-size: 1.125rem;
   font-weight: 500;
   margin: 0;
   line-height: 1.7;
 }
 :is(.lunar-direction-cards, .planetary-direction-cards) .math-formula {
-  font-size: 13px;
+  font-size: 1.0625rem;
 }
 :is(.lunar-direction-cards, .planetary-direction-cards) button {
   margin-top: auto;
@@ -943,14 +963,14 @@
   border-radius: 5px;
   background: var(--accent);
   color: var(--accent-ink);
-  font-size: 12px;
+  font-size: 1rem;
   min-height: 42px;
 }
 :is(.lunar-comparison-note, .planetary-comparison-note) {
   border-left: 2px solid var(--accent);
   padding-left: 14px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.9375rem;
 }
 :is(.lunar-table, .planetary-table) tbody th {
   white-space: normal;
@@ -973,13 +993,13 @@
 }
 
 .planetary-shared-equation h4 {
-  font-size: 14px;
+  font-size: 1.125rem;
   font-weight: 500;
   margin: 0 0 12px;
 }
 .planetary-shared-equation p,
 .planetary-direction-cards p {
-  font-size: 12px;
+  font-size: 1rem;
   color: var(--muted);
   margin: 0;
   line-height: 1.8;
