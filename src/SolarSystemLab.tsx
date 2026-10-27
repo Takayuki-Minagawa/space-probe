@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import { Icon, ParameterInput } from "./components";
+import { numberFormatter, texNumber, translator } from "./i18n";
 import type { Lang } from "./learning";
 import MathFormula from "./MathFormula";
 import { K, deg, norm } from "./physics";
@@ -33,13 +34,9 @@ export default function SolarSystemLab({
   const [progress, setProgress] = useState(0);
   const [playing, setPlaying] = useState(false);
   const headingId = useId();
-  const tr = (ja: string, en: string) => (lang === "ja" ? ja : en);
-  const f = (value: number, digits = 3) =>
-    value.toLocaleString(lang === "ja" ? "ja-JP" : "en-US", {
-      maximumFractionDigits: digits,
-    });
-  const tn = (value: number, digits = 3) =>
-    f(value, digits).replaceAll(",", String.raw`{,}`);
+  const tr = translator(lang);
+  const f = numberFormatter(lang);
+  const tn = texNumber(lang);
   const result = useMemo(() => {
     try {
       return calculateRoute(inputs);
@@ -1041,13 +1038,9 @@ function PlanetaryComparison({
   lang: Lang;
   onSelect: (route: RouteResult) => void;
 }) {
-  const tr = (ja: string, en: string) => (lang === "ja" ? ja : en);
-  const f = (value: number, digits = 3) =>
-    value.toLocaleString(lang === "ja" ? "ja-JP" : "en-US", {
-      maximumFractionDigits: digits,
-    });
-  const tn = (value: number, digits = 3) =>
-    f(value, digits).replaceAll(",", String.raw`{,}`);
+  const tr = translator(lang);
+  const f = numberFormatter(lang);
+  const tn = texNumber(lang);
   const planet = outbound.destination;
   const metrics = [
     {
@@ -1289,13 +1282,9 @@ function LunarComparison({
   lang: Lang;
   onSelect: (route: RouteResult) => void;
 }) {
-  const tr = (ja: string, en: string) => (lang === "ja" ? ja : en);
-  const f = (value: number, digits = 3) =>
-    value.toLocaleString(lang === "ja" ? "ja-JP" : "en-US", {
-      maximumFractionDigits: digits,
-    });
-  const tn = (value: number, digits = 3) =>
-    f(value, digits).replaceAll(",", String.raw`{,}`);
+  const tr = translator(lang);
+  const f = numberFormatter(lang);
+  const tn = texNumber(lang);
   const metrics = [
     {
       key: "time",
@@ -1474,13 +1463,9 @@ function LunarCalculationSteps({
   route: RouteResult;
   lang: Lang;
 }) {
-  const tr = (ja: string, en: string) => (lang === "ja" ? ja : en);
-  const f = (value: number, digits = 3) =>
-    value.toLocaleString(lang === "ja" ? "ja-JP" : "en-US", {
-      maximumFractionDigits: digits,
-    });
-  const tn = (value: number, digits = 3) =>
-    f(value, digits).replaceAll(",", String.raw`{,}`);
+  const tr = translator(lang);
+  const f = numberFormatter(lang);
+  const tn = texNumber(lang);
   const returning = route.lunarDirection === "return";
   const departureFormula = returning
     ? String.raw`\begin{aligned}v_{\infty,\mathrm M}&\approx |v_{\mathrm{T1}}-v_{\mathrm{c1}}|\\&=${tn(route.departureExcess!)}\,\mathrm{km/s}\\r_{\mathrm{pM}}&=R_{\mathrm M}+h_{\mathrm M}\\&=${tn(route.departureParkingRadius)}\,\mathrm{km}\\\mu_{\mathrm M}&=${tn(BODIES.moon.mu)}\,\mathrm{km^3/s^2}\\\Delta v_{\mathrm{depart}}&=\sqrt{v_{\infty,\mathrm M}^2+\frac{2\mu_{\mathrm M}}{r_{\mathrm{pM}}}}\\&\quad-\sqrt{\frac{\mu_{\mathrm M}}{r_{\mathrm{pM}}}}\\&=${tn(route.departureDeltaV)}\,\mathrm{km/s}\end{aligned}`
@@ -1696,7 +1681,7 @@ function RouteDiagram({
   samples: { time: number; state: { r: Vec } }[];
   lang: Lang;
 }) {
-  const tr = (ja: string, en: string) => (lang === "ja" ? ja : en);
+  const tr = translator(lang);
   const current = routeAt(route, time);
   const extent = Math.max(route.departureRadius, route.targetRadius) * 1.18;
   const scale = 208 / extent;

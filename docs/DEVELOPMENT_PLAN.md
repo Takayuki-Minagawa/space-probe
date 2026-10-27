@@ -13,7 +13,13 @@ This guide covers architecture, validation, and deployment. See the [model speci
 | `src/SolarSystemLab.tsx`         | 航路選択、条件変更、時間操作、軌道図、TeX計算過程、地球発の航路比較、地球と各惑星・月の往復比較。 / Route selection, settings, timeline, orbit diagram, TeX walkthrough, Earth-origin comparisons, and Earth–planet/lunar outbound/return comparison. |
 | `src/simulation.ts`              | 実験の入力、参考設定、時間範囲、軌跡サンプル。 / Experiment parameters, reference settings, time spans, and path samples. |
 | `src/learning.ts`                | 日英の課題・解説・マニュアル。 / Bilingual challenges, explanations, and guide.                                           |
-| `src/App.tsx`                    | 操作、入力検証、時間制御、表示状態。 / Interaction, input validation, time controls, and view state.                      |
+| `src/App.tsx`                    | 言語・テーマ・表示モードの切替と画面全体の組み立て。 / Language, theme, and view switching; assembles the page.           |
+| `src/HomeHero.tsx`               | ホーム画面の見出し、概要、航路と基礎実験への入口。 / Landing headline, key facts, and entry cards for routes and experiments. |
+| `src/SiteChrome.tsx`             | ヘッダー、フッター、簡易マニュアルのダイアログ。 / Header, footer, and the quick-guide dialog.                            |
+| `src/useExperimentLab.ts`        | 基礎実験の状態（入力・時刻・再生・課題の進捗）と操作。 / Guided-experiment state (inputs, time, playback, progress) and actions. |
+| `src/ExperimentLab.tsx`          | 基礎実験の画面：軌道図、条件、数値、計算過程、課題。 / Guided-experiment view: diagram, controls, metrics, walkthrough, challenge. |
+| `src/labOutcome.ts`              | 基礎実験の到達判定と表示する数値（純粋関数）。 / Pure functions judging each experiment and listing its headline numbers.   |
+| `src/i18n.ts` / `src/hooks.ts`   | 言語別の文言・数値書式と、保存設定・低モーション・非表示時停止のフック。 / Locale copy and number formatting; stored-setting, reduced-motion, and pause-when-hidden hooks. |
 | `src/CalculationWalkthrough.tsx` | 計算過程と参考設定との比較。 / Calculation steps and reference comparisons.                                               |
 | `src/OrbitDiagram.tsx`           | 同じ物理状態に基づくSVG軌道図と速度グラフ。 / SVG trajectories and speed chart from the same physical state.              |
 | `src/components.tsx`             | 共通入力部品とアイコン。 / Shared inputs and icons.                                                                       |

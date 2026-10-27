@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { localeOf, translator } from "./i18n";
 import type { LabId, Lang } from "./learning";
 import { K, capture, deg, norm, normalizeAngle } from "./physics";
 import { H } from "./simulation";
@@ -33,9 +34,9 @@ export default function CalculationWalkthrough({
   onPreset,
 }: CalculationWalkthroughProps) {
   const headingId = useId();
-  const tr = (ja: string, en: string) => (lang === "ja" ? ja : en);
+  const tr = translator(lang);
   const f = (value: number, digits = 3) =>
-    new Intl.NumberFormat(lang === "ja" ? "ja-JP" : "en-US", {
+    new Intl.NumberFormat(localeOf(lang), {
       maximumFractionDigits: digits,
     }).format(Math.abs(value) < 0.5 * 10 ** -digits ? 0 : value);
   const texNumber = (value: number, digits = 3) =>
