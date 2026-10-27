@@ -14,10 +14,10 @@ import {
   PLANET_IDS,
   calculateRoute,
   defaultRouteInputs,
+  reverseLunarInputs,
   routeAt,
   sampleRoute,
   type BodyId,
-  type PlanetId,
 } from "./solarSystem";
 
 const planetPairs = PLANET_IDS.flatMap((origin) =>
@@ -79,7 +79,7 @@ describe("planetary route model", () => {
       expect(inward.arrivalSignedChange).toBeLessThan(0);
       expect(inward.departureExcess).toBeGreaterThan(0);
       expect(inward.flightTime).toBe(outward.flightTime);
-      expect(inward.departureExcess).toBeCloseTo(outward.arrivalExcess, 12);
+      expect(inward.departureExcess).toBeCloseTo(outward.arrivalExcess!, 12);
       expect(inward.arrivalExcess).toBeCloseTo(outward.departureExcess!, 12);
     },
   );
@@ -151,6 +151,8 @@ describe("geocentric lunar transfer", () => {
   it("uses a bound Earth-centered injection, with independent approximate lunar capture", () => {
     const route = calculateRoute(defaultRouteInputs("earth", "moon"));
     expect(route.frame).toBe("earth");
+    expect(route.lunarDirection).toBe("outbound");
+    expect(route.encounterKind).toBe("body-center");
     expect(route.mu).toBe(K.muEarth);
     expect(route.departureExcess).toBeNull();
     expect(route.departureRadius).toBe(K.rEarth + 200);
@@ -184,6 +186,200 @@ describe("geocentric lunar transfer", () => {
       ).toBeLessThan(1e-9);
     }
     expect(dot(initial.r, initial.v)).toBeCloseTo(0, 10);
+  });
+});
+
+describe("lunar return and reversible reference", () => {
+  it.each([
+    [200, 100],
+    [150, 50],
+    [1000, 500],
+    [100000, 100000],
+  ])(
+    "preserves time and swaps burns for Earth %i km / Moon %i km",
+    (earthAltitude, moonAltitude) => {
+      const outboundInput = {
+        ...defaultRouteInputs("earth", "moon"),
+        departureAltitude: earthAltitude,
+        arrivalAltitude: moonAltitude,
+      };
+      const outbound = calculateRoute(outboundInput);
+      const returning = calculateRoute(reverseLunarInputs(outboundInput));
+      expect(returning.lunarDirection).toBe("return");
+      expect(returning.frame).toBe("earth");
+      expect(returning.mu).toBe(K.muEarth);
+      expect(returning.flightTime).toBe(outbound.flightTime);
+      expect(returning.departureDeltaV).toBe(outbound.arrivalDeltaV);
+      expect(returning.arrivalDeltaV).toBe(outbound.departureDeltaV);
+      expect(returning.totalDeltaV).toBe(outbound.totalDeltaV);
+      expect(returning.departureExcess).toBe(outbound.arrivalExcess);
+      expect(returning.arrivalExcess).toBeNull();
+      expect(returning.transferDepartureSpeed).toBe(
+        outbound.transferArrivalSpeed,
+      );
+      expect(returning.transferArrivalSpeed).toBe(
+        outbound.transferDepartureSpeed,
+      );
+      expect(returning.encounter).toBe(true);
+      expect(returning.capture.status).toBe("target");
+    },
+  );
+
+  it("retains per-body heights while resetting timing and braking for a reference", () => {
+    const input = {
+      ...defaultRouteInputs("earth", "moon"),
+      departureAltitude: 800,
+      arrivalAltitude: 350,
+      phaseOffset: 75,
+      waitDays: 12,
+      captureFraction: 0.25,
+    };
+    const reverse = reverseLunarInputs(input);
+    expect(reverse).toEqual({
+      origin: "moon",
+      destination: "earth",
+      departureAltitude: 350,
+      arrivalAltitude: 800,
+      phaseOffset: 0,
+      waitDays: 0,
+      captureFraction: 1,
+    });
+    expect(reverseLunarInputs(reverse)).toEqual({
+      ...input,
+      phaseOffset: 0,
+      waitDays: 0,
+      captureFraction: 1,
+    });
+    expect(input.phaseOffset).toBe(75);
+    expect(() => reverseLunarInputs(defaultRouteInputs())).toThrow(RangeError);
+    expect(() =>
+      reverseLunarInputs({ ...input, departureAltitude: -1 }),
+    ).toThrow(RangeError);
+  });
+
+  it("uses bound Earth arrival directly and leaves an ellipse without braking", () => {
+    const input = defaultRouteInputs("moon", "earth");
+    expect(input.departureAltitude).toBe(100);
+    expect(input.arrivalAltitude).toBe(200);
+    const route = calculateRoute({ ...input, captureFraction: 0 });
+    expect(route.arrivalExcess).toBeNull();
+    expect(route.capture.beforeBurn).toBe(route.transferArrivalSpeed);
+    expect(route.arrivalDeltaV).toBe(
+      route.transferArrivalSpeed - Math.sqrt(K.muEarth / (K.rEarth + 200)),
+    );
+    expect(route.capture.status).toBe("captured");
+    expect(route.capture.elements.energy).toBeLessThan(0);
+    expect(route.capture.elements.periapsisRadius).toBeCloseTo(
+      K.rEarth + 200,
+      7,
+    );
+    expect(route.capture.elements.apoapsisRadius).toBeCloseTo(
+      BODIES.moon.orbitRadius,
+      5,
+    );
+    expect(route.captureBurn).toBe(0);
+    expect(route.capture.elements.semiMajor).toBeCloseTo(route.semiMajor, 5);
+  });
+
+  it("shows partial circularization, circular arrival, and unsafe excessive braking", () => {
+    const input = defaultRouteInputs("moon", "earth");
+    const none = calculateRoute({ ...input, captureFraction: 0 });
+    const partial = calculateRoute({ ...input, captureFraction: 0.5 });
+    const circular = calculateRoute(input);
+    const excessive = calculateRoute({ ...input, captureFraction: 1.5 });
+    expect(partial.capture.status).toBe("captured");
+    expect(partial.capture.elements.periapsisRadius).toBeCloseTo(
+      circular.arrivalParkingRadius,
+      7,
+    );
+    expect(partial.capture.elements.apoapsisRadius!).toBeLessThan(
+      none.capture.elements.apoapsisRadius!,
+    );
+    expect(partial.capture.elements.apoapsisRadius!).toBeGreaterThan(
+      circular.arrivalParkingRadius,
+    );
+    expect(circular.capture.status).toBe("target");
+    expect(circular.capture.elements.eccentricity).toBeLessThan(1e-12);
+    expect(excessive.capture.status).toBe("unsafe");
+    expect(excessive.capture.elements.periapsisRadius).toBeLessThan(K.rEarth);
+    for (const route of [none, partial, circular, excessive]) {
+      expect(route.capture.elements.energy).toBeLessThan(0);
+      expect(route.arrivalMiss).toBe(circular.arrivalMiss);
+      expect(route.arrivalDeltaV).toBe(circular.arrivalDeltaV);
+      expect(route.flightTime).toBe(circular.flightTime);
+    }
+  });
+
+  it.each([
+    { phaseOffset: 90, waitDays: 0 },
+    { phaseOffset: -180, waitDays: 1 },
+    { phaseOffset: 180, waitDays: 100000 },
+  ])("changes orientation only for %o", (patch) => {
+    const input = defaultRouteInputs("moon", "earth");
+    const reference = calculateRoute(input);
+    const route = calculateRoute({ ...input, ...patch });
+    expect(route.encounterKind).toBe("orbit-radius");
+    expect(route.encounterTolerance).toBe(1);
+    expect(route.phaseAngle).toBe(0);
+    expect(route.nTarget).toBe(0);
+    expect(route.departurePhase).toBe(route.departureAngle);
+    expect(route.synodicPeriod).toBeCloseTo(
+      (2 * Math.PI) / route.nDeparture,
+      7,
+    );
+    expect(route.encounter).toBe(true);
+    expect(route.arrivalMiss).toBeCloseTo(reference.arrivalMiss, 5);
+    expect(route.flightTime).toBe(reference.flightTime);
+    expect(route.totalDeltaV).toBe(reference.totalDeltaV);
+    const initial = routeAt(route, 0);
+    expect(norm(sub(initial.origin.r, initial.probe.r))).toBeLessThan(1e-8);
+    expect(
+      norm(sub(initial.probe.r, routeAt(reference, 0).probe.r)),
+    ).toBeGreaterThan(1);
+    const endpoint = routeAt(route, route.flightTime);
+    expect(endpoint.target).toEqual({ r: [0, 0], v: [0, 0] });
+    expect(endpoint.distance).toBeCloseTo(route.targetRadius, 5);
+    expect(endpoint.distance).toBeGreaterThan(6000);
+    expect(route.arrivalMiss).toBe(
+      Math.abs(endpoint.distance - route.targetRadius),
+    );
+    expect(norm(endpoint.origin.r)).toBeCloseTo(BODIES.moon.orbitRadius, 7);
+  });
+
+  it("preserves Earth-frame energy and angular momentum from Moon to perigee", () => {
+    const route = calculateRoute(defaultRouteInputs("moon", "earth"));
+    const initial = elements(routeAt(route, 0).probe, route.mu);
+    for (const { state } of sampleRoute(route, 15)) {
+      const orbit = elements(state, route.mu);
+      expect(relative(orbit.energy, initial.energy)).toBeLessThan(1e-9);
+      expect(
+        relative(orbit.angularMomentum, initial.angularMomentum),
+      ).toBeLessThan(1e-9);
+      expect([...state.r, ...state.v].every(Number.isFinite)).toBe(true);
+    }
+  });
+
+  it("checks Moon departure and Earth arrival bounds against their own bodies", () => {
+    const input = defaultRouteInputs("moon", "earth");
+    expect(() => calculateRoute({ ...input, departureAltitude: 49 })).toThrow(
+      RangeError,
+    );
+    expect(() => calculateRoute({ ...input, arrivalAltitude: 149 })).toThrow(
+      RangeError,
+    );
+    expect(() =>
+      calculateRoute({ ...input, departureAltitude: 100001 }),
+    ).toThrow(RangeError);
+    expect(() => calculateRoute({ ...input, arrivalAltitude: 100001 })).toThrow(
+      RangeError,
+    );
+    const route = calculateRoute({
+      ...input,
+      departureAltitude: 50,
+      arrivalAltitude: 150,
+    });
+    expect(route.encounter).toBe(true);
+    expect(route.capture.status).toBe("target");
   });
 });
 
@@ -233,10 +429,12 @@ describe("local capture and input domain", () => {
     },
   );
 
-  it("rejects unsupported origins, same-body routes, lunar origin and non-Earth lunar routes", () => {
+  it("rejects unknown bodies, same-body routes, and lunar routes beyond Earth", () => {
     expect(() => defaultRouteInputs("earth", "earth")).toThrow(RangeError);
     expect(() => defaultRouteInputs("mars", "moon")).toThrow(RangeError);
-    expect(() => defaultRouteInputs("moon" as PlanetId, "earth")).toThrow(
+    expect(() => defaultRouteInputs("moon", "mars")).toThrow(RangeError);
+    expect(() => defaultRouteInputs("moon", "moon")).toThrow(RangeError);
+    expect(() => defaultRouteInputs("pluto" as BodyId, "earth")).toThrow(
       RangeError,
     );
     expect(() => defaultRouteInputs("earth", "pluto" as BodyId)).toThrow(

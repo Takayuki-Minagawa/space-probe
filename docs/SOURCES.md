@@ -52,9 +52,13 @@ Planet-only and planet-system GMs differ because the latter includes satellites.
 - [JPL Approximate Positions of the Planets, Table 1](https://ssd.jpl.nasa.gov/planets/approx_pos.html)：水星・金星・巨大惑星のJ2000半長軸を固定円軌道半径へ採用。軌道の離心率・傾斜・経年変化は使いません。地球1 AU、火星1.523679 AUは基礎実験と共通の教材値です。 / J2000 semimajor axes are reused as circular radii for Mercury, Venus, and the giant planets. Eccentricities, inclinations, and rates are omitted. Earth and Mars retain the guided labs' fixed radii.
 - [NASA Moon Fact Sheet](https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html)：月の体積平均半径1737.4 kmと半長軸384400 km。半長軸を円軌道半径として使います。 / Lunar volumetric mean radius and semimajor axis, with the latter reused as a circular radius.
 
-教材の最低高度は地球150 km、月50 km、他の岩石惑星100 km、巨大惑星1,000 kmです。遭遇の許容距離は惑星間10,000 km、月1,000 kmです。いずれも学習用の選択で、出典資料が保証する安全・接近基準ではありません。固定値から得る参考結果と判定条件は [モデル仕様](MODEL_SPEC.md) に記載しています。
+教材の最低高度は地球150 km、月50 km、他の岩石惑星100 km、巨大惑星1,000 kmです。中心間の遭遇の許容距離は惑星間10,000 km、月往路1,000 kmです。月復路は地球の目標円軌道半径との差1 km以下を判定し、地球中心との遭遇距離ではありません。いずれも学習用の選択で、出典資料が保証する安全・接近基準ではありません。固定値から得る参考結果と判定条件は [モデル仕様](MODEL_SPEC.md) に記載しています。
 
-Minimum altitudes and encounter tolerances are teaching choices, not source-backed operational safety or approach limits. See the [model specification](MODEL_SPEC.md) for their values, reference results, and evaluation criteria.
+Minimum altitudes and encounter tolerances are teaching choices, not source-backed operational safety or approach limits. Lunar return evaluates an absolute Earth target-radius error of at most 1 km, not a center-to-center rendezvous distance. See the [model specification](MODEL_SPEC.md) for their values, reference results, and evaluation criteria.
+
+月の往路・復路の比較は、同じ地球・月の定数と高度条件を使い、地球中心の楕円と月中心の局所噴射を逆向きに適用した計算です。帰路用に別の天体定数や実ミッションの飛行時間を追加していません。対称な飛行時間・Δvはこのモデルから導く値で、一次資料の実ミッションの実績値ではありません。地球復路の到着には、束縛楕円の近点速度を使います。
+
+The lunar outbound/return comparison uses the same Earth/Moon constants and altitude conditions, reversing the geocentric ellipse and local lunar burn estimates. It adds no separate return constants or real-mission flight times. Equal times and Δv budgets follow from this model's symmetry, not measured mission results in the source material. Earth return arrival uses the bound ellipse's periapsis speed.
 
 ## 実装・配信 / Implementation and deployment
 

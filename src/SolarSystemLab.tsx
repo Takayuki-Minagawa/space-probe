@@ -7,13 +7,13 @@ import type { Vec } from "./physics";
 import {
   BODIES,
   BODY_IDS,
-  PLANET_IDS,
   calculateRoute,
   defaultRouteInputs,
+  reverseLunarInputs,
   routeAt,
   sampleRoute,
 } from "./solarSystem";
-import type { BodyId, PlanetId, RouteInputs, RouteResult } from "./solarSystem";
+import type { BodyId, RouteInputs, RouteResult } from "./solarSystem";
 import "./SolarSystemLab.css";
 
 interface SolarSystemLabProps {
@@ -63,7 +63,21 @@ export default function SolarSystemLab({
   );
   const origin = BODIES[inputs.origin];
   const destination = BODIES[inputs.destination];
-  const lunar = inputs.destination === "moon";
+  const lunar = inputs.destination === "moon" || inputs.origin === "moon";
+  const lunarReturn = inputs.origin === "moon";
+  const lunarPair = useMemo(() => {
+    if (!result || !result.lunarDirection) return null;
+    const currentReference = calculateRoute({
+      ...inputs,
+      phaseOffset: 0,
+      waitDays: 0,
+      captureFraction: 1,
+    });
+    const reversed = calculateRoute(reverseLunarInputs(inputs));
+    return result.lunarDirection === "return"
+      ? { outbound: reversed, inbound: currentReference }
+      : { outbound: currentReference, inbound: reversed };
+  }, [inputs, result]);
   const waitLimit = Math.min(
     100000,
     Math.max(1, Math.ceil(reference.synodicPeriod / K.DAY)),
@@ -106,15 +120,24 @@ export default function SolarSystemLab({
     return () => document.removeEventListener("visibilitychange", pause);
   }, []);
 
-  function selectRoute(from: PlanetId, to: BodyId) {
-    const nextOrigin = to === "moon" ? "earth" : from;
-    const nextTarget =
-      nextOrigin === to ? (nextOrigin === "earth" ? "mars" : "earth") : to;
-    setInputs(defaultRouteInputs(nextOrigin, nextTarget));
+  function applyInputs(next: RouteInputs) {
+    setInputs(next);
     setInvalid({});
     setRevision((value) => value + 1);
     setProgress(0);
     setPlaying(false);
+  }
+  function selectRoute(from: BodyId, to: BodyId) {
+    const nextOrigin = to === "moon" ? "earth" : from;
+    const nextTarget =
+      nextOrigin === "moon"
+        ? "earth"
+        : nextOrigin === to
+          ? nextOrigin === "earth"
+            ? "mars"
+            : "earth"
+          : to;
+    applyInputs(defaultRouteInputs(nextOrigin, nextTarget));
   }
   function change(key: NumericInput, value: number) {
     setInputs((current) => ({ ...current, [key]: value }));
@@ -152,7 +175,9 @@ export default function SolarSystemLab({
   }
   const captureLabels = {
     target: tr("目標円軌道に一致", "Target circular orbit matched"),
-    captured: tr("捕獲・目標とは異なる軌道", "Captured into a different orbit"),
+    captured: lunarReturn
+      ? tr("地球に束縛された楕円軌道", "Earth-bound ellipse")
+      : tr("捕獲・目標とは異なる軌道", "Captured into a different orbit"),
     flyby: tr("非束縛・通過する軌道", "Unbound passing trajectory"),
     unsafe: tr("モデルの最低高度を下回る", "Below the model altitude limit"),
   };
@@ -196,13 +221,14 @@ export default function SolarSystemLab({
         {(
           [
             ["earth", "moon"],
+            ["moon", "earth"],
             ["earth", "mars"],
             ["earth", "jupiter"],
             ["venus", "earth"],
-          ] as [PlanetId, BodyId][]
+          ] as [BodyId, BodyId][]
         ).map(([from, to]) => (
           <button
-            key={to}
+            key={`${from}-${to}`}
             type="button"
             onClick={() => selectRoute(from, to)}
             aria-pressed={inputs.origin === from && inputs.destination === to}
@@ -236,7 +262,7 @@ export default function SolarSystemLab({
                 id="solar-origin"
                 value={inputs.origin}
                 onChange={(event) => {
-                  const from = event.target.value as PlanetId;
+                  const from = event.target.value as BodyId;
                   selectRoute(
                     from,
                     inputs.destination === "moon" && from !== "earth"
@@ -245,7 +271,7 @@ export default function SolarSystemLab({
                   );
                 }}
               >
-                {PLANET_IDS.map((id) => (
+                {BODY_IDS.map((id) => (
                   <option key={id} value={id}>
                     {BODIES[id].name[lang]}
                   </option>
@@ -258,9 +284,15 @@ export default function SolarSystemLab({
               <select
                 id="solar-destination"
                 value={inputs.destination}
-                onChange={(event) =>
-                  selectRoute(inputs.origin, event.target.value as BodyId)
-                }
+                onChange={(event) => {
+                  const to = event.target.value as BodyId;
+                  selectRoute(
+                    inputs.origin === "moon" && to !== "earth"
+                      ? "earth"
+                      : inputs.origin,
+                    to,
+                  );
+                }}
               >
                 {BODY_IDS.map((id) => (
                   <option key={id} value={id} disabled={id === inputs.origin}>
@@ -271,15 +303,20 @@ export default function SolarSystemLab({
             </label>
           </div>
           <p className="solar-control-note">
-            {lunar
+            {lunarReturn
               ? tr(
-                  "月を選ぶと出発天体は地球になります。",
-                  "Selecting the Moon sets the departure body to Earth.",
+                  "月からの帰路は地球の円軌道までを計算します。着陸や大気圏再突入は含みません。",
+                  "The lunar return target is an Earth circular orbit. Landing and atmospheric re-entry are excluded.",
                 )
-              : tr(
-                  "地球を目的地にした帰路も計算できます。",
-                  "You can also select Earth as a return destination.",
-                )}
+              : lunar
+                ? tr(
+                    "月を選ぶと出発天体は地球になります。",
+                    "Selecting the Moon sets the departure body to Earth.",
+                  )
+                : tr(
+                    "地球を目的地にした帰路も計算できます。",
+                    "You can also select Earth as a return destination.",
+                  )}
           </p>
           {field(
             "departureAltitude",
@@ -306,11 +343,17 @@ export default function SolarSystemLab({
             </p>
           )}
           <div className="solar-control-divider">
-            <span>{tr("待ち合わせを変える", "Change the meeting")}</span>
+            <span>
+              {lunarReturn
+                ? tr("出発方向を変える", "Change the departure direction")
+                : tr("待ち合わせを変える", "Change the meeting")}
+            </span>
           </div>
           {field(
             "phaseOffset",
-            tr("初期位相のずれ", "Initial phase offset"),
+            lunarReturn
+              ? tr("月の出発方向", "Lunar departure direction")
+              : tr("初期位相のずれ", "Initial phase offset"),
             -180,
             180,
             1,
@@ -325,22 +368,32 @@ export default function SolarSystemLab({
             tr("日", "days"),
           )}
           <p className="solar-control-note">
-            {lunar
+            {lunarReturn
               ? tr(
-                  "待つ間、待機軌道の探査機と月が進みます。地球の自転を使った計算ではありません。",
-                  "Waiting advances the parking spacecraft and the Moon. Earth’s surface rotation is not used.",
+                  "待つ間に月が地球の周りを進み、出発方向が変わります。地球は図の中心にあり、この設定は飛行時間・必要な噴射量・到着高度を変えません。",
+                  "Waiting advances the Moon around Earth and rotates the departure direction. Earth stays at the center, so this changes neither flight time, required burns, nor arrival altitude.",
                 )
-              : tr(
-                  "位相のずれ0°・待ち時間0日が、待ち合わせできる参考条件です。",
-                  "Zero phase offset and zero wait give the reference meeting conditions.",
-                )}
+              : lunar
+                ? tr(
+                    "待つ間、待機軌道の探査機と月が進みます。地球の自転を使った計算ではありません。",
+                    "Waiting advances the parking spacecraft and the Moon. Earth’s surface rotation is not used.",
+                  )
+                : tr(
+                    "位相のずれ0°・待ち時間0日が、待ち合わせできる参考条件です。",
+                    "Zero phase offset and zero wait give the reference meeting conditions.",
+                  )}
           </p>
           <div className="solar-control-divider">
             <span>{tr("到着後の局所実験", "Local arrival experiment")}</span>
           </div>
           {field(
             "captureFraction",
-            tr("捕獲噴射の割合", "Capture burn fraction"),
+            lunarReturn
+              ? tr(
+                  "地球円軌道への減速割合",
+                  "Earth circularization burn fraction",
+                )
+              : tr("捕獲噴射の割合", "Capture burn fraction"),
             0,
             1.5,
             0.05,
@@ -368,11 +421,13 @@ export default function SolarSystemLab({
               </h3>
             </div>
             <span className="solar-direction">
-              {lunar
-                ? tr("月へ向かう楕円", "Ellipse to the Moon")
-                : reference.targetRadius < reference.departureRadius
-                  ? tr("内側の軌道へ", "Toward an inner orbit")
-                  : tr("外側の軌道へ", "Toward an outer orbit")}
+              {lunarReturn
+                ? tr("地球へ戻る楕円", "Return ellipse to Earth")
+                : lunar
+                  ? tr("月へ向かう楕円", "Ellipse to the Moon")
+                  : reference.targetRadius < reference.departureRadius
+                    ? tr("内側の軌道へ", "Toward an inner orbit")
+                    : tr("外側の軌道へ", "Toward an outer orbit")}
             </span>
           </div>
           {route && now ? (
@@ -442,10 +497,15 @@ export default function SolarSystemLab({
                   </span>
                 </div>
                 <p className="solar-current-distance">
-                  {tr(
-                    "この時刻の目的地までの距離",
-                    "Distance to destination now",
-                  )}{" "}
+                  {lunarReturn
+                    ? tr(
+                        "この時刻の地球中心距離",
+                        "Current distance from Earth's center",
+                      )
+                    : tr(
+                        "この時刻の目的地までの距離",
+                        "Distance to destination now",
+                      )}{" "}
                   <strong>{f(now.distance, 0)} km</strong>
                 </p>
                 {reduceMotion && (
@@ -464,21 +524,31 @@ export default function SolarSystemLab({
                 <Icon name={route.encounter ? "check" : "orbit"} size={20} />
                 <div>
                   <strong>
-                    {route.encounter
+                    {lunarReturn
                       ? tr(
-                          "参考の待ち合わせ条件を満たす",
-                          "Meeting tolerance satisfied",
+                          "目標の地球近点半径に到達",
+                          "Target Earth periapsis radius reached",
                         )
-                      : tr(
-                          "この設定では、到着時にすれ違う",
-                          "The destination is missed at arrival",
-                        )}
+                      : route.encounter
+                        ? tr(
+                            "参考の待ち合わせ条件を満たす",
+                            "Meeting tolerance satisfied",
+                          )
+                        : tr(
+                            "この設定では、到着時にすれ違う",
+                            "The destination is missed at arrival",
+                          )}
                   </strong>
                   <p>
-                    {tr(
-                      "到着時刻での中心位置のずれ",
-                      "Center-to-center miss at arrival",
-                    )}{" "}
+                    {lunarReturn
+                      ? tr(
+                          "到着高度の目標との差",
+                          "Arrival altitude difference from target",
+                        )
+                      : tr(
+                          "到着時刻での中心位置のずれ",
+                          "Center-to-center miss at arrival",
+                        )}{" "}
                     <b data-testid="route-arrival-miss">
                       {f(route.arrivalMiss, 0)} km
                     </b>{" "}
@@ -509,9 +579,14 @@ export default function SolarSystemLab({
                   )}
                 />
                 <Metric
+                  testId="route-arrival-dv"
                   label={tr(
-                    "円軌道投入の参考 Δv",
-                    "Reference circular capture Δv",
+                    lunarReturn
+                      ? "地球円軌道化の参考 Δv"
+                      : "円軌道投入の参考 Δv",
+                    lunarReturn
+                      ? "Reference Earth circularization Δv"
+                      : "Reference circular capture Δv",
                   )}
                   value={`${f(route.arrivalDeltaV)} km/s`}
                   change={difference(
@@ -521,6 +596,7 @@ export default function SolarSystemLab({
                   )}
                 />
                 <Metric
+                  testId="route-total-dv"
                   label={tr(
                     "参考2噴射の合計 Δv",
                     "Reference two-burn total Δv",
@@ -534,10 +610,15 @@ export default function SolarSystemLab({
                 />
               </div>
               <p className="solar-budget-note">
-                {tr(
-                  "Δvは速度を変える量です。上記は参考の遭遇を仮定した出発・円軌道投入の概算で、地表打上げは含みません。位置がずれた場合、この捕獲噴射では修正できません。",
-                  "Δv measures a change in velocity. These departure and circular-capture estimates assume the reference encounter and exclude surface launch. This capture burn cannot correct a missed destination.",
-                )}
+                {lunarReturn
+                  ? tr(
+                      "月の周回円軌道から出発し、地球の円軌道で終わる概算です。地球到着時にも楕円は地球に束縛されています。大気を使わず噴射だけで円軌道に入り、地表への帰還は扱いません。",
+                      "These estimates start in a lunar circular orbit and end in an Earth circular orbit. The returning ellipse is already Earth-bound. Circularization uses propulsion alone; surface return and atmospheric braking are excluded.",
+                    )
+                  : tr(
+                      "Δvは速度を変える量です。上記は参考の遭遇を仮定した出発・円軌道投入の概算で、地表打上げは含みません。位置がずれた場合、この捕獲噴射では修正できません。",
+                      "Δv measures a change in velocity. These departure and circular-capture estimates assume the reference encounter and exclude surface launch. This capture burn cannot correct a missed destination.",
+                    )}
               </p>
             </>
           ) : (
@@ -556,163 +637,174 @@ export default function SolarSystemLab({
 
       {route && (
         <>
-          <section
-            className="solar-calculations"
-            id="solar-calculations"
-            aria-labelledby="solar-calculations-title"
-          >
-            <div className="solar-section-heading">
-              <div>
-                <span className="section-kicker">
-                  {tr("数字がつながる、4つのステップ", "FOLLOW THE NUMBERS")}
-                </span>
-                <h3 id="solar-calculations-title">
-                  {tr("この航路の計算過程", "How this route is calculated")}
-                </h3>
+          {lunarPair && (
+            <LunarComparison
+              outbound={lunarPair.outbound}
+              inbound={lunarPair.inbound}
+              lang={lang}
+              onSelect={(next) => applyInputs({ ...next.inputs })}
+            />
+          )}
+          {lunar ? (
+            <LunarCalculationSteps route={route} lang={lang} />
+          ) : (
+            <section
+              className="solar-calculations"
+              id="solar-calculations"
+              aria-labelledby="solar-calculations-title"
+            >
+              <div className="solar-section-heading">
+                <div>
+                  <span className="section-kicker">
+                    {tr("数字がつながる、4つのステップ", "FOLLOW THE NUMBERS")}
+                  </span>
+                  <h3 id="solar-calculations-title">
+                    {tr("この航路の計算過程", "How this route is calculated")}
+                  </h3>
+                </div>
+                <p>
+                  {tr(
+                    "入力を変えると、代入する数値も更新されます。",
+                    "Changing the inputs also updates the substituted values.",
+                  )}
+                </p>
               </div>
-              <p>
-                {tr(
-                  "入力を変えると、代入する数値も更新されます。",
-                  "Changing the inputs also updates the substituted values.",
-                )}
-              </p>
-            </div>
-            <div className="solar-equations">
-              <article>
-                <span className="solar-step-number">01</span>
-                <h4>
-                  {tr(
-                    "軌道から、時間を求める",
-                    "From orbital radii to flight time",
-                  )}
-                </h4>
-                <p>
-                  {lunar
-                    ? tr(
-                        "出発は地球待機軌道、到着は月の公転半径。",
-                        "Start at the Earth parking orbit and end at the Moon’s orbital radius.",
-                      )
-                    : tr(
-                        "出発・到着天体の公転半径を使います。",
-                        "Use the orbital radii of the departure and destination planets.",
-                      )}
-                </p>
-                <MathFormula
-                  tex={String.raw`\begin{aligned}r_1&=${tn(route.departureRadius, 1)}\,\mathrm{km}\\r_2&=${tn(route.targetRadius, 1)}\,\mathrm{km}\\\mu&=${tn(route.mu, 3)}\,\mathrm{km^3/s^2}\\a_{\mathrm T}&=\frac{r_1+r_2}{2}\\&=${tn(route.semiMajor, 1)}\,\mathrm{km}\\t_{\mathrm T}&=\pi\sqrt{\frac{a_{\mathrm T}^3}{\mu}}\\&=${tn(route.flightTime / K.DAY, 3)}\,\mathrm d\end{aligned}`}
-                />
-                <strong>{duration(route.flightTime)}</strong>
-                <small>
-                  {lunar
-                    ? tr(
-                        "約5日は低エネルギーの半楕円モデルの値です。有人ミッションの所要時間ではありません。待機高度を変えると飛行時間も変わります。",
-                        "About five days is the low-energy half-ellipse result, not a crewed-mission duration. Parking altitude also changes flight time.",
-                      )
-                    : tr(
-                        "待機高度や位相を変えても、この惑星間の遷移時間は固定です。",
-                        "Parking altitude and phase do not change this interplanetary transfer time.",
-                      )}
-                </small>
-              </article>
-              <article>
-                <span className="solar-step-number">02</span>
-                <h4>
-                  {tr("出発に必要な噴射を求める", "Find the departure burn")}
-                </h4>
-                <p>
-                  {lunar
-                    ? tr(
-                        "地球に束縛された楕円へ直接投入します。",
-                        "Inject directly into an ellipse bound to Earth.",
-                      )
-                    : tr(
-                        "太陽中心での速度差と、天体を脱出する噴射を区別します。",
-                        "Separate the heliocentric speed change from the local escape burn.",
-                      )}
-                </p>
-                <MathFormula
-                  tex={String.raw`\begin{aligned}v_{\mathrm{T1}}&=\sqrt{\mu\!\left(\frac{2}{r_1}-\frac{1}{a_{\mathrm T}}\right)}\\&=${tn(route.transferDepartureSpeed)}\,\mathrm{km/s}\\v_{\mathrm{c1}}&=\sqrt{\frac{\mu}{r_1}}=${tn(route.departureCircularSpeed)}\,\mathrm{km/s}\\\Delta v_{\mathrm{frame}}&=v_{\mathrm{T1}}-v_{\mathrm{c1}}\\&=${tn(route.departureSignedChange)}\,\mathrm{km/s}\end{aligned}`}
-                />
-                <MathFormula
-                  tex={
-                    lunar
-                      ? String.raw`\Delta v_{\mathrm{depart}}=v_{\mathrm{T1}}-v_{\mathrm{c1}}`
-                      : String.raw`\begin{aligned}v_{\infty,1}&=|\Delta v_{\mathrm{frame}}|\\r_{\mathrm{p1}}&=R_1+h_1\\&=${tn(origin.radius + inputs.departureAltitude)}\,\mathrm{km}\\\Delta v_{\mathrm{depart}}&=\sqrt{v_{\infty,1}^{2}+\frac{2\mu_1}{r_{\mathrm{p1}}}}\\&\quad-\sqrt{\frac{\mu_1}{r_{\mathrm{p1}}}}\end{aligned}`
-                  }
-                />
-                <strong>{f(route.departureDeltaV)} km/s</strong>
-                <small>
-                  {!lunar && route.departureSignedChange < 0
-                    ? tr(
-                        "内側へ向かうには太陽中心の速さを下げます。局所の脱出噴射量は正の大きさです。",
-                        "An inward transfer reduces heliocentric speed. The local escape burn is reported as a positive magnitude.",
-                      )
-                    : tr(
-                        "地表から待機軌道への打上げは含みません。",
-                        "Launch from the surface into the parking orbit is excluded.",
-                      )}
-                </small>
-              </article>
-              <article>
-                <span className="solar-step-number">03</span>
-                <h4>
-                  {tr(
-                    "動く目的地と、待ち合わせる",
-                    "Meet a moving destination",
-                  )}
-                </h4>
-                <p>
-                  {tr(
-                    "位相は出発の方向から見た目的地の先行角です。",
-                    "Phase is the destination’s lead relative to the departure direction.",
-                  )}
-                </p>
-                <MathFormula
-                  tex={String.raw`\begin{aligned}n_i&=\sqrt{\frac{\mu}{r_i^3}}\\\phi_{\mathrm{ref}}&=(\pi-n_2t_{\mathrm T})\bmod 2\pi\\&=${tn(deg(route.phaseAngle))}^{\circ}\\\phi_{\mathrm{depart}}&=\phi_{\mathrm{ref}}+\Delta\phi_0\\&\quad+(n_2-n_1)t_{\mathrm{wait}}\\&\equiv ${tn(deg(route.departurePhase))}^{\circ}\\d_{\mathrm{arrival}}&=\left\|\mathbf r_{\mathrm{probe}}-\mathbf r_2\right\|\\&=${tn(route.arrivalMiss, 0)}\,\mathrm{km}\end{aligned}`}
-                />
-                <strong>{f(route.arrivalMiss, 0)} km</strong>
-                <small>
-                  {tr(
-                    "距離は規定到着時刻で評価します。中心の一致は教材上の理想化で、実際の接近航路ではありません。",
-                    "Distance is evaluated at the prescribed arrival time. Coincident centers are an idealization, not an operational approach.",
-                  )}
-                </small>
-              </article>
-              <article>
-                <span className="solar-step-number">04</span>
-                <h4>
-                  {tr(
-                    "到着後の円軌道投入を見積もる",
-                    "Estimate circular capture",
-                  )}
-                </h4>
-                <p>
-                  {tr(
-                    "到着速度を目的地の重力場へつなぐ独立した近似です。",
-                    "An independent approximation connects the arrival speed to the destination’s gravity field.",
-                  )}
-                </p>
-                <MathFormula
-                  tex={String.raw`\begin{aligned}v_{\mathrm{T2}}&=\sqrt{\mu\!\left(\frac{2}{r_2}-\frac{1}{a_{\mathrm T}}\right)}\\&=${tn(route.transferArrivalSpeed)}\,\mathrm{km/s}\\v_{\mathrm{c2}}&=\sqrt{\frac{\mu}{r_2}}=${tn(route.targetCircularSpeed)}\,\mathrm{km/s}\end{aligned}`}
-                />
-                <MathFormula
-                  tex={String.raw`\begin{aligned}v_{\infty,2}&=|v_{\mathrm{T2}}-v_{\mathrm{c2}}|\\&=${tn(route.arrivalExcess)}\,\mathrm{km/s}\\r_{\mathrm{p2}}&=R_2+h_2\\&=${tn(destination.radius + inputs.arrivalAltitude)}\,\mathrm{km}\\v_{\mathrm p}&=\sqrt{v_{\infty,2}^2+\frac{2\mu_2}{r_{\mathrm{p2}}}}\\&=${tn(route.capture.beforeBurn)}\,\mathrm{km/s}\\\Delta v_{\mathrm{circ}}&=v_{\mathrm p}-\sqrt{\frac{\mu_2}{r_{\mathrm{p2}}}}\\&=${tn(route.arrivalDeltaV)}\,\mathrm{km/s}\end{aligned}`}
-                />
-                <strong>{f(route.arrivalDeltaV)} km/s</strong>
-                <small>
-                  {lunar
-                    ? tr(
-                        "月の重力と地球の重力の連続した三体運動は解いていません。月到着の目安です。",
-                        "This is a lunar arrival estimate; it does not solve continuous Earth–Moon three-body motion.",
-                      )
-                    : tr(
-                        "惑星の作用圏をまたぐ連続した航法解ではありません。",
-                        "This is not a continuous trajectory solution across the planet’s sphere of influence.",
-                      )}
-                </small>
-              </article>
-            </div>
-          </section>
-
+              <div className="solar-equations">
+                <article>
+                  <span className="solar-step-number">01</span>
+                  <h4>
+                    {tr(
+                      "軌道から、時間を求める",
+                      "From orbital radii to flight time",
+                    )}
+                  </h4>
+                  <p>
+                    {lunar
+                      ? tr(
+                          "出発は地球待機軌道、到着は月の公転半径。",
+                          "Start at the Earth parking orbit and end at the Moon’s orbital radius.",
+                        )
+                      : tr(
+                          "出発・到着天体の公転半径を使います。",
+                          "Use the orbital radii of the departure and destination planets.",
+                        )}
+                  </p>
+                  <MathFormula
+                    tex={String.raw`\begin{aligned}r_1&=${tn(route.departureRadius, 1)}\,\mathrm{km}\\r_2&=${tn(route.targetRadius, 1)}\,\mathrm{km}\\\mu&=${tn(route.mu, 3)}\,\mathrm{km^3/s^2}\\a_{\mathrm T}&=\frac{r_1+r_2}{2}\\&=${tn(route.semiMajor, 1)}\,\mathrm{km}\\t_{\mathrm T}&=\pi\sqrt{\frac{a_{\mathrm T}^3}{\mu}}\\&=${tn(route.flightTime / K.DAY, 3)}\,\mathrm d\end{aligned}`}
+                  />
+                  <strong>{duration(route.flightTime)}</strong>
+                  <small>
+                    {lunar
+                      ? tr(
+                          "約5日は低エネルギーの半楕円モデルの値です。有人ミッションの所要時間ではありません。待機高度を変えると飛行時間も変わります。",
+                          "About five days is the low-energy half-ellipse result, not a crewed-mission duration. Parking altitude also changes flight time.",
+                        )
+                      : tr(
+                          "待機高度や位相を変えても、この惑星間の遷移時間は固定です。",
+                          "Parking altitude and phase do not change this interplanetary transfer time.",
+                        )}
+                  </small>
+                </article>
+                <article>
+                  <span className="solar-step-number">02</span>
+                  <h4>
+                    {tr("出発に必要な噴射を求める", "Find the departure burn")}
+                  </h4>
+                  <p>
+                    {lunar
+                      ? tr(
+                          "地球に束縛された楕円へ直接投入します。",
+                          "Inject directly into an ellipse bound to Earth.",
+                        )
+                      : tr(
+                          "太陽中心での速度差と、天体を脱出する噴射を区別します。",
+                          "Separate the heliocentric speed change from the local escape burn.",
+                        )}
+                  </p>
+                  <MathFormula
+                    tex={String.raw`\begin{aligned}v_{\mathrm{T1}}&=\sqrt{\mu\!\left(\frac{2}{r_1}-\frac{1}{a_{\mathrm T}}\right)}\\&=${tn(route.transferDepartureSpeed)}\,\mathrm{km/s}\\v_{\mathrm{c1}}&=\sqrt{\frac{\mu}{r_1}}=${tn(route.departureCircularSpeed)}\,\mathrm{km/s}\\\Delta v_{\mathrm{frame}}&=v_{\mathrm{T1}}-v_{\mathrm{c1}}\\&=${tn(route.departureSignedChange)}\,\mathrm{km/s}\end{aligned}`}
+                  />
+                  <MathFormula
+                    tex={
+                      lunar
+                        ? String.raw`\Delta v_{\mathrm{depart}}=v_{\mathrm{T1}}-v_{\mathrm{c1}}`
+                        : String.raw`\begin{aligned}v_{\infty,1}&=|\Delta v_{\mathrm{frame}}|\\r_{\mathrm{p1}}&=R_1+h_1\\&=${tn(origin.radius + inputs.departureAltitude)}\,\mathrm{km}\\\Delta v_{\mathrm{depart}}&=\sqrt{v_{\infty,1}^{2}+\frac{2\mu_1}{r_{\mathrm{p1}}}}\\&\quad-\sqrt{\frac{\mu_1}{r_{\mathrm{p1}}}}\end{aligned}`
+                    }
+                  />
+                  <strong>{f(route.departureDeltaV)} km/s</strong>
+                  <small>
+                    {!lunar && route.departureSignedChange < 0
+                      ? tr(
+                          "内側へ向かうには太陽中心の速さを下げます。局所の脱出噴射量は正の大きさです。",
+                          "An inward transfer reduces heliocentric speed. The local escape burn is reported as a positive magnitude.",
+                        )
+                      : tr(
+                          "地表から待機軌道への打上げは含みません。",
+                          "Launch from the surface into the parking orbit is excluded.",
+                        )}
+                  </small>
+                </article>
+                <article>
+                  <span className="solar-step-number">03</span>
+                  <h4>
+                    {tr(
+                      "動く目的地と、待ち合わせる",
+                      "Meet a moving destination",
+                    )}
+                  </h4>
+                  <p>
+                    {tr(
+                      "位相は出発の方向から見た目的地の先行角です。",
+                      "Phase is the destination’s lead relative to the departure direction.",
+                    )}
+                  </p>
+                  <MathFormula
+                    tex={String.raw`\begin{aligned}n_i&=\sqrt{\frac{\mu}{r_i^3}}\\\phi_{\mathrm{ref}}&=(\pi-n_2t_{\mathrm T})\bmod 2\pi\\&=${tn(deg(route.phaseAngle))}^{\circ}\\\phi_{\mathrm{depart}}&=\phi_{\mathrm{ref}}+\Delta\phi_0\\&\quad+(n_2-n_1)t_{\mathrm{wait}}\\&\equiv ${tn(deg(route.departurePhase))}^{\circ}\\d_{\mathrm{arrival}}&=\left\|\mathbf r_{\mathrm{probe}}-\mathbf r_2\right\|\\&=${tn(route.arrivalMiss, 0)}\,\mathrm{km}\end{aligned}`}
+                  />
+                  <strong>{f(route.arrivalMiss, 0)} km</strong>
+                  <small>
+                    {tr(
+                      "距離は規定到着時刻で評価します。中心の一致は教材上の理想化で、実際の接近航路ではありません。",
+                      "Distance is evaluated at the prescribed arrival time. Coincident centers are an idealization, not an operational approach.",
+                    )}
+                  </small>
+                </article>
+                <article>
+                  <span className="solar-step-number">04</span>
+                  <h4>
+                    {tr(
+                      "到着後の円軌道投入を見積もる",
+                      "Estimate circular capture",
+                    )}
+                  </h4>
+                  <p>
+                    {tr(
+                      "到着速度を目的地の重力場へつなぐ独立した近似です。",
+                      "An independent approximation connects the arrival speed to the destination’s gravity field.",
+                    )}
+                  </p>
+                  <MathFormula
+                    tex={String.raw`\begin{aligned}v_{\mathrm{T2}}&=\sqrt{\mu\!\left(\frac{2}{r_2}-\frac{1}{a_{\mathrm T}}\right)}\\&=${tn(route.transferArrivalSpeed)}\,\mathrm{km/s}\\v_{\mathrm{c2}}&=\sqrt{\frac{\mu}{r_2}}=${tn(route.targetCircularSpeed)}\,\mathrm{km/s}\end{aligned}`}
+                  />
+                  <MathFormula
+                    tex={String.raw`\begin{aligned}v_{\infty,2}&=|v_{\mathrm{T2}}-v_{\mathrm{c2}}|\\&=${tn(route.arrivalExcess!)}\,\mathrm{km/s}\\r_{\mathrm{p2}}&=R_2+h_2\\&=${tn(destination.radius + inputs.arrivalAltitude)}\,\mathrm{km}\\v_{\mathrm p}&=\sqrt{v_{\infty,2}^2+\frac{2\mu_2}{r_{\mathrm{p2}}}}\\&=${tn(route.capture.beforeBurn)}\,\mathrm{km/s}\\\Delta v_{\mathrm{circ}}&=v_{\mathrm p}-\sqrt{\frac{\mu_2}{r_{\mathrm{p2}}}}\\&=${tn(route.arrivalDeltaV)}\,\mathrm{km/s}\end{aligned}`}
+                  />
+                  <strong>{f(route.arrivalDeltaV)} km/s</strong>
+                  <small>
+                    {lunar
+                      ? tr(
+                          "月の重力と地球の重力の連続した三体運動は解いていません。月到着の目安です。",
+                          "This is a lunar arrival estimate; it does not solve continuous Earth–Moon three-body motion.",
+                        )
+                      : tr(
+                          "惑星の作用圏をまたぐ連続した航法解ではありません。",
+                          "This is not a continuous trajectory solution across the planet’s sphere of influence.",
+                        )}
+                  </small>
+                </article>
+              </div>
+            </section>
+          )}
           <section
             className="solar-capture"
             aria-labelledby="solar-capture-title"
@@ -726,8 +818,14 @@ export default function SolarSystemLab({
                   )}
                 </span>
                 <h3 id="solar-capture-title">
-                  {destination.name[lang]}
-                  {tr("での捕獲実験", " capture experiment")}
+                  {lunarReturn ? (
+                    tr("地球到着時の減速実験", "Braking at Earth arrival")
+                  ) : (
+                    <>
+                      {destination.name[lang]}
+                      {tr("での捕獲実験", " capture experiment")}
+                    </>
+                  )}
                 </h3>
               </div>
               <span className="solar-capture-fraction">
@@ -735,15 +833,20 @@ export default function SolarSystemLab({
               </span>
             </div>
             <p className="solar-budget-note">
-              {route.encounter
+              {lunarReturn
                 ? tr(
-                    "参考の到着速度を使う局所実験です。遷移軌道から連続した接近・捕獲を保証しません。",
-                    "This local experiment uses the reference arrival speed. It does not establish continuous approach and capture from the transfer trajectory.",
+                    "月出発の局所近似に続く、地球中心の帰還楕円の近点での減速です。減速前から地球に束縛されており、円軌道化は別の判定です。",
+                    "This brakes at periapsis of the Earth-centered return ellipse after the separate lunar departure approximation. The ellipse is already Earth-bound; circularization is a separate condition.",
                   )
-                : tr(
-                    "目的地と遭遇していないため、以下は到着したと仮定した局所実験です。航路全体の成功を示しません。",
-                    "The destination is missed, so the following is a hypothetical local experiment assuming arrival. It does not indicate mission success.",
-                  )}
+                : route.encounter
+                  ? tr(
+                      "参考の到着速度を使う局所実験です。遷移軌道から連続した接近・捕獲を保証しません。",
+                      "This local experiment uses the reference arrival speed. It does not establish continuous approach and capture from the transfer trajectory.",
+                    )
+                  : tr(
+                      "目的地と遭遇していないため、以下は到着したと仮定した局所実験です。航路全体の成功を示しません。",
+                      "The destination is missed, so the following is a hypothetical local experiment assuming arrival. It does not indicate mission success.",
+                    )}
             </p>
             <div className="solar-capture-content">
               <div>
@@ -782,10 +885,15 @@ export default function SolarSystemLab({
                   </div>
                 </dl>
                 <p>
-                  {tr(
-                    "減速が少ないと飛び去り、多すぎると反対側の高度が下がります。噴射後の接線速度が負になると進行方向が反転し、さらに噴射すると非束縛にもなります。最低高度は教材上の制約値です。",
-                    "Too little braking leaves a flyby; too much lowers the opposite side. A negative post-burn tangential speed reverses direction; further braking can become unbound again. The minimum altitude is a teaching constraint.",
-                  )}
+                  {lunarReturn
+                    ? tr(
+                        "0×では月の軌道半径まで伸びる地球束縛の楕円が続きます。1×で目標円軌道へ入り、減速しすぎると反対側が低くなって地表と交差する場合があります。最低高度は教材上の制約です。",
+                        "At 0× the Earth-bound ellipse still extends to the Moon’s orbital radius. At 1× it becomes the target circle. Excessive braking lowers the opposite side and may cross Earth's surface. The minimum altitude is a teaching constraint.",
+                      )
+                    : tr(
+                        "減速が少ないと飛び去り、多すぎると反対側の高度が下がります。噴射後の接線速度が負になると進行方向が反転し、さらに噴射すると非束縛にもなります。最低高度は教材上の制約値です。",
+                        "Too little braking leaves a flyby; too much lowers the opposite side. A negative post-burn tangential speed reverses direction; further braking can become unbound again. The minimum altitude is a teaching constraint.",
+                      )}
                 </p>
               </div>
             </div>
@@ -878,8 +986,8 @@ export default function SolarSystemLab({
         </summary>
         <p>
           {tr(
-            "惑星の公転を同じ平面の円軌道として、半楕円のホーマン遷移を計算します。月は地球中心の待機円軌道から月の平均公転距離へ向かう楕円です。表示する時刻は相対時間で、実際の打上げ日ではありません。大気、軌道の傾き、複数天体の重力、途中の修正噴射、スウィングバイはこの航路計算に含みません。",
-            "Planets follow circular orbits in one plane, joined by a half-ellipse Hohmann transfer. The lunar case starts from an Earth-centered parking circle and reaches the Moon’s mean orbital distance. Time is relative, not a real launch date. Atmospheres, inclination, multi-body gravity, corrections, and gravity assists are not included in these routes.",
+            "惑星の公転を同じ平面の円軌道として、半楕円のホーマン遷移を計算します。月の往路は地球待機円軌道から月の平均公転距離へ、復路は月の距離から地球の到着円軌道半径へ進む楕円です。表示する時刻は相対時間で、実際の打上げ日ではありません。大気、軌道の傾き、複数天体の重力、途中の修正噴射、スウィングバイはこの航路計算に含みません。",
+            "Planets follow circular orbits in one plane, joined by a half-ellipse Hohmann transfer. Lunar outbound flight goes from an Earth parking circle to the Moon’s mean orbital distance; the return goes from that distance to the Earth arrival-circle radius. Time is relative, not a real launch date. Atmospheres, inclination, multi-body gravity, corrections, and gravity assists are not included in these routes.",
           )}
         </p>
         <p>
@@ -906,6 +1014,393 @@ export default function SolarSystemLab({
           </a>
         </p>
       </details>
+    </section>
+  );
+}
+
+function LunarComparison({
+  outbound,
+  inbound,
+  lang,
+  onSelect,
+}: {
+  outbound: RouteResult;
+  inbound: RouteResult;
+  lang: Lang;
+  onSelect: (route: RouteResult) => void;
+}) {
+  const tr = (ja: string, en: string) => (lang === "ja" ? ja : en);
+  const f = (value: number, digits = 3) =>
+    value.toLocaleString(lang === "ja" ? "ja-JP" : "en-US", {
+      maximumFractionDigits: digits,
+    });
+  const tn = (value: number, digits = 3) =>
+    f(value, digits).replaceAll(",", String.raw`{,}`);
+  const metrics = [
+    {
+      key: "time",
+      label: tr("飛行時間", "Flight time"),
+      out: outbound.flightTime / K.DAY,
+      back: inbound.flightTime / K.DAY,
+      unit: tr("日", "days"),
+      digits: 2,
+    },
+    {
+      key: "departure",
+      label: tr("出発の噴射 Δv", "Departure burn Δv"),
+      out: outbound.departureDeltaV,
+      back: inbound.departureDeltaV,
+      unit: "km/s",
+      digits: 3,
+    },
+    {
+      key: "arrival",
+      label: tr("到着円軌道化 Δv", "Arrival circularization Δv"),
+      out: outbound.arrivalDeltaV,
+      back: inbound.arrivalDeltaV,
+      unit: "km/s",
+      digits: 3,
+    },
+    {
+      key: "total",
+      label: tr("2噴射の合計 Δv", "Two-burn total Δv"),
+      out: outbound.totalDeltaV,
+      back: inbound.totalDeltaV,
+      unit: "km/s",
+      digits: 3,
+    },
+  ];
+  const earthRadius = outbound.departureRadius;
+  const moonParkingRadius = outbound.arrivalParkingRadius;
+  return (
+    <section
+      className="lunar-comparison"
+      data-testid="lunar-comparison"
+      aria-labelledby="lunar-comparison-title"
+    >
+      <div className="solar-section-heading">
+        <div>
+          <span className="section-kicker">
+            {tr(
+              "同じ高度で、行きと帰りを比較",
+              "SAME ALTITUDES, TWO DIRECTIONS",
+            )}
+          </span>
+          <h3 id="lunar-comparison-title">
+            {tr(
+              "月の往路と復路を比べる",
+              "Compare lunar outbound and return routes",
+            )}
+          </h3>
+        </div>
+      </div>
+      <p className="solar-budget-note">
+        {tr(
+          `地球の円軌道高度 ${f(outbound.inputs.departureAltitude, 0)} km、月の円軌道高度 ${f(outbound.inputs.arrivalAltitude, 0)} kmを両方向で共有します。比較は待ち時間・位相のずれを0、到着減速を100%にした参考条件です。`,
+          `Both directions use an Earth circular altitude of ${f(outbound.inputs.departureAltitude, 0)} km and a lunar circular altitude of ${f(outbound.inputs.arrivalAltitude, 0)} km. The comparison uses reference conditions: zero wait and phase offset, with 100% arrival circularization.`,
+        )}
+      </p>
+      <div
+        className="solar-table-scroll lunar-table"
+        tabIndex={0}
+        role="region"
+        aria-label={tr(
+          "月の往路・復路比較表",
+          "Lunar outbound and return comparison table",
+        )}
+      >
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">{tr("比べる量", "Quantity")}</th>
+              <th scope="col">
+                {tr("往路：地球 → 月", "Outbound: Earth → Moon")}
+              </th>
+              <th scope="col">
+                {tr("復路：月 → 地球", "Return: Moon → Earth")}
+              </th>
+              <th scope="col">
+                {tr("差（復路 − 往路）", "Difference (return − outbound)")}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {metrics.map((metric) => {
+              const delta = metric.back - metric.out;
+              const roundedDelta =
+                Math.abs(delta) < 0.5 * 10 ** -metric.digits ? 0 : delta;
+              return (
+                <tr key={metric.key}>
+                  <th scope="row">{metric.label}</th>
+                  <td data-testid={`lunar-outbound-${metric.key}`}>
+                    {f(metric.out, metric.digits)} {metric.unit}
+                  </td>
+                  <td data-testid={`lunar-return-${metric.key}`}>
+                    {f(metric.back, metric.digits)} {metric.unit}
+                  </td>
+                  <td data-testid={`lunar-difference-${metric.key}`}>
+                    {roundedDelta > 0 ? "+" : ""}
+                    {f(roundedDelta, metric.digits)} {metric.unit}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="lunar-shared-equation">
+        <p>
+          {tr(
+            "共通の半楕円を逆向きに使うため、飛行時間は同じです。地球近点での速度差と、月近傍の速度差が出発・到着で入れ替わります。",
+            "Both directions use the same half ellipse, so the flight time is equal. The Earth-periapsis and local lunar speed differences exchange departure and arrival roles.",
+          )}
+        </p>
+        <MathFormula
+          tex={String.raw`\begin{aligned}r_{\mathrm E}&=R_{\mathrm E}+h_{\mathrm E}=${tn(earthRadius)}\,\mathrm{km}\\r_{\mathrm{pM}}&=R_{\mathrm M}+h_{\mathrm M}=${tn(moonParkingRadius)}\,\mathrm{km}\\a_{\mathrm T}&=\frac{r_{\mathrm E}+r_{\mathrm{Moon}}}{2}=${tn(outbound.semiMajor, 1)}\,\mathrm{km}\\t_{\mathrm{out}}=t_{\mathrm{return}}&=\pi\sqrt{\frac{a_{\mathrm T}^3}{\mu_{\mathrm E}}}\\&=${tn(outbound.flightTime / K.DAY, 3)}\,\mathrm d\end{aligned}`}
+        />
+      </div>
+      <div className="lunar-direction-cards">
+        <article>
+          <h4>
+            {tr(
+              "往路：地球で加速、月で減速",
+              "Outbound: accelerate at Earth, brake at the Moon",
+            )}
+          </h4>
+          <MathFormula
+            tex={String.raw`\begin{aligned}\Delta v_{\mathrm{depart,E}}&=v_{\mathrm{TE}}-\sqrt{\frac{\mu_{\mathrm E}}{r_{\mathrm E}}}\\&=${tn(outbound.transferDepartureSpeed)}-${tn(outbound.departureCircularSpeed)}\\&=${tn(outbound.departureDeltaV)}\,\mathrm{km/s}\\\Delta v_{\mathrm{arrive,M}}&=\sqrt{v_{\infty,\mathrm M}^{2}+\frac{2\mu_{\mathrm M}}{r_{\mathrm{pM}}}}\\&\quad-\sqrt{\frac{\mu_{\mathrm M}}{r_{\mathrm{pM}}}}\\&=${tn(outbound.arrivalDeltaV)}\,\mathrm{km/s}\end{aligned}`}
+          />
+          <button type="button" onClick={() => onSelect(outbound)}>
+            {tr("往路を表示", "Show outbound")}
+            <Icon name="arrow" size={16} />
+          </button>
+        </article>
+        <article>
+          <h4>
+            {tr(
+              "復路：月で加速、地球で減速",
+              "Return: accelerate at the Moon, brake at Earth",
+            )}
+          </h4>
+          <MathFormula
+            tex={String.raw`\begin{aligned}\Delta v_{\mathrm{depart,M}}&=\sqrt{v_{\infty,\mathrm M}^{2}+\frac{2\mu_{\mathrm M}}{r_{\mathrm{pM}}}}\\&\quad-\sqrt{\frac{\mu_{\mathrm M}}{r_{\mathrm{pM}}}}\\&=${tn(inbound.departureDeltaV)}\,\mathrm{km/s}\\\Delta v_{\mathrm{arrive,E}}&=v_{\mathrm{TE}}-\sqrt{\frac{\mu_{\mathrm E}}{r_{\mathrm E}}}\\&=${tn(inbound.transferArrivalSpeed)}-${tn(inbound.targetCircularSpeed)}\\&=${tn(inbound.arrivalDeltaV)}\,\mathrm{km/s}\end{aligned}`}
+          />
+          <button type="button" onClick={() => onSelect(inbound)}>
+            {tr("復路を表示", "Show return")}
+            <Icon name="arrow" size={16} />
+          </button>
+        </article>
+      </div>
+      <p className="solar-budget-note">
+        {tr(
+          "式の vTE は地球近点での遷移速度、v∞,M は月との参考相対速度です。値と導出は下の計算過程で確認できます。方向切替では天体ごとの高度を保持し、位相・待ち時間・減速割合を上記の参考条件へ戻します。",
+          "vTE denotes the transfer speed at Earth periapsis; v∞,M is the reference Moon-relative speed. Their values and derivations appear below. Switching direction preserves each body's altitude and resets phase, wait, and braking to the reference conditions above.",
+        )}
+      </p>
+      <p className="lunar-comparison-note">
+        {tr(
+          "合計Δvが同じなのは、この理想化した二体モデルと月近傍の局所近似を逆向きに使うためです。地球への着陸・大気圏再突入・大気減速、月面からの打上げ、軌道面変更や途中の修正は含みません。",
+          "Equal total Δv follows from reversing this idealized two-body model and its local lunar approximation. Earth landing, re-entry, atmospheric braking, lunar surface launch, plane changes, and corrections are excluded.",
+        )}
+      </p>
+    </section>
+  );
+}
+
+function LunarCalculationSteps({
+  route,
+  lang,
+}: {
+  route: RouteResult;
+  lang: Lang;
+}) {
+  const tr = (ja: string, en: string) => (lang === "ja" ? ja : en);
+  const f = (value: number, digits = 3) =>
+    value.toLocaleString(lang === "ja" ? "ja-JP" : "en-US", {
+      maximumFractionDigits: digits,
+    });
+  const tn = (value: number, digits = 3) =>
+    f(value, digits).replaceAll(",", String.raw`{,}`);
+  const returning = route.lunarDirection === "return";
+  const departureFormula = returning
+    ? String.raw`\begin{aligned}v_{\infty,\mathrm M}&\approx |v_{\mathrm{T1}}-v_{\mathrm{c1}}|\\&=${tn(route.departureExcess!)}\,\mathrm{km/s}\\r_{\mathrm{pM}}&=R_{\mathrm M}+h_{\mathrm M}\\&=${tn(route.departureParkingRadius)}\,\mathrm{km}\\\mu_{\mathrm M}&=${tn(BODIES.moon.mu)}\,\mathrm{km^3/s^2}\\\Delta v_{\mathrm{depart}}&=\sqrt{v_{\infty,\mathrm M}^2+\frac{2\mu_{\mathrm M}}{r_{\mathrm{pM}}}}\\&\quad-\sqrt{\frac{\mu_{\mathrm M}}{r_{\mathrm{pM}}}}\\&=${tn(route.departureDeltaV)}\,\mathrm{km/s}\end{aligned}`
+    : String.raw`\begin{aligned}\Delta v_{\mathrm{depart}}&=v_{\mathrm{T1}}-v_{\mathrm{c1}}\\&=${tn(route.transferDepartureSpeed)}-${tn(route.departureCircularSpeed)}\\&=${tn(route.departureDeltaV)}\,\mathrm{km/s}\end{aligned}`;
+  const directionFormula = returning
+    ? String.raw`\begin{aligned}n_{\mathrm M}&=\sqrt{\frac{\mu_{\mathrm E}}{r_1^3}}\\\theta_{\mathrm{depart}}&=(\theta_0+n_{\mathrm M}t_{\mathrm w})\bmod 2\pi\\&=${tn(deg(route.departureAngle))}^{\circ}\\r_{\mathrm{arrival}}&=\lVert\mathbf r_{\mathrm{probe}}(t_{\mathrm T})\rVert\\&=${tn(route.targetRadius)}\,\mathrm{km}\\d_h&=|r_{\mathrm{arrival}}-r_2|\\&=${tn(route.arrivalMiss, 3)}\,\mathrm{km}\end{aligned}`
+    : String.raw`\begin{aligned}n_i&=\sqrt{\frac{\mu_{\mathrm E}}{r_i^3}}\\\phi_{\mathrm{ref}}&=(\pi-n_2t_{\mathrm T})\bmod 2\pi\\&=${tn(deg(route.phaseAngle))}^{\circ}\\\phi_{\mathrm{depart}}&=\phi_{\mathrm{ref}}+\Delta\phi_0\\&\quad+(n_2-n_1)t_{\mathrm w}\\&\equiv ${tn(deg(route.departurePhase))}^{\circ}\\d&=\lVert\mathbf r_{\mathrm{probe}}-\mathbf r_{\mathrm{Moon}}\rVert\\&=${tn(route.arrivalMiss, 0)}\,\mathrm{km}\end{aligned}`;
+  const arrivalFormula = returning
+    ? String.raw`\begin{aligned}r_{\mathrm{p2}}&=R_{\mathrm E}+h_{\mathrm E}=${tn(route.arrivalParkingRadius)}\,\mathrm{km}\\v_{\mathrm p}&=v_{\mathrm{T2}}=${tn(route.capture.beforeBurn)}\,\mathrm{km/s}\\v_{\mathrm{cE}}&=\sqrt{\frac{\mu_{\mathrm E}}{r_{\mathrm{p2}}}}\\&=${tn(route.targetCircularSpeed)}\,\mathrm{km/s}\\\Delta v_{\mathrm{circ}}&=v_{\mathrm p}-v_{\mathrm{cE}}\\&=${tn(route.arrivalDeltaV)}\,\mathrm{km/s}\end{aligned}`
+    : String.raw`\begin{aligned}v_{\infty,\mathrm M}&\approx |v_{\mathrm{T2}}-v_{\mathrm{c2}}|\\&=${tn(route.arrivalExcess!)}\,\mathrm{km/s}\\r_{\mathrm{p2}}&=R_{\mathrm M}+h_{\mathrm M}=${tn(route.arrivalParkingRadius)}\,\mathrm{km}\\\mu_{\mathrm M}&=${tn(BODIES.moon.mu)}\,\mathrm{km^3/s^2}\\v_{\mathrm p}&=\sqrt{v_{\infty,\mathrm M}^2+\frac{2\mu_{\mathrm M}}{r_{\mathrm{p2}}}}\\&=${tn(route.capture.beforeBurn)}\,\mathrm{km/s}\\\Delta v_{\mathrm{circ}}&=v_{\mathrm p}-\sqrt{\frac{\mu_{\mathrm M}}{r_{\mathrm{p2}}}}\\&=${tn(route.arrivalDeltaV)}\,\mathrm{km/s}\end{aligned}`;
+  return (
+    <section
+      className="solar-calculations"
+      id="solar-calculations"
+      aria-labelledby="solar-calculations-title"
+    >
+      <div className="solar-section-heading">
+        <div>
+          <span className="section-kicker">
+            {tr("入力を式に入れて、比較する", "SUBSTITUTE, THEN COMPARE")}
+          </span>
+          <h3 id="solar-calculations-title">
+            {tr("この航路の計算過程", "How this route is calculated")}
+          </h3>
+        </div>
+        <p>
+          {returning
+            ? tr(
+                "復路：月周回円軌道 → 地球周回円軌道",
+                "Return: lunar circular orbit → Earth circular orbit",
+              )
+            : tr(
+                "往路：地球周回円軌道 → 月周回円軌道",
+                "Outbound: Earth circular orbit → lunar circular orbit",
+              )}
+        </p>
+      </div>
+      <div className="solar-equations">
+        <article>
+          <span className="solar-step-number">01</span>
+          <h4>
+            {tr(
+              "地球中心の楕円と飛行時間",
+              "Earth-centered ellipse and flight time",
+            )}
+          </h4>
+          <p>
+            {returning
+              ? tr(
+                  "出発は月の公転半径、到着は地球の目標円軌道半径です。",
+                  "Start at the Moon’s orbital radius and end at the Earth target-circle radius.",
+                )
+              : tr(
+                  "出発は地球の待機円軌道、到着は月の公転半径です。",
+                  "Start at the Earth parking circle and end at the Moon’s orbital radius.",
+                )}
+          </p>
+          <MathFormula
+            tex={String.raw`\begin{aligned}r_1&=${tn(route.departureRadius)}\,\mathrm{km}\\r_2&=${tn(route.targetRadius)}\,\mathrm{km}\\\mu_{\mathrm E}&=${tn(K.muEarth)}\,\mathrm{km^3/s^2}\\a_{\mathrm T}&=\frac{r_1+r_2}{2}\\&=${tn(route.semiMajor)}\,\mathrm{km}\\t_{\mathrm T}&=\pi\sqrt{\frac{a_{\mathrm T}^3}{\mu_{\mathrm E}}}\\&=${tn(route.flightTime, 1)}\,\mathrm s\\&=${tn(route.flightTime / K.DAY)}\,\mathrm d\end{aligned}`}
+          />
+          <strong>
+            {f(route.flightTime / K.DAY, 2)} {tr("日", "days")}
+          </strong>
+          <small>
+            {tr(
+              "地球側の高度を変えると半楕円と飛行時間が変わります。約5日はこの近似モデルの値です。",
+              "Earth-side altitude changes the half ellipse and its flight time. Roughly five days is this model’s result.",
+            )}
+          </small>
+        </article>
+        <article>
+          <span className="solar-step-number">02</span>
+          <h4>
+            {returning
+              ? tr(
+                  "月周回軌道から帰路へ出発",
+                  "Depart the lunar circular orbit",
+                )
+              : tr(
+                  "地球待機軌道から月へ出発",
+                  "Depart the Earth parking circle",
+                )}
+          </h4>
+          <p>
+            {returning
+              ? tr(
+                  "地球中心では月の公転速度より遅く出発します。月の重力から離れる噴射は、月中心の独立した局所近似です。",
+                  "Departure is slower than the Moon’s Earth-relative orbital speed. The burn to escape lunar gravity is an independent local approximation.",
+                )
+              : tr(
+                  "地球に束縛された楕円へ直接投入します。地球脱出の超過速度は使いません。",
+                  "Inject directly into an Earth-bound ellipse without an Earth escape excess speed.",
+                )}
+          </p>
+          <MathFormula
+            tex={String.raw`\begin{aligned}v_{\mathrm{T1}}&=\sqrt{\mu_{\mathrm E}\left(\frac{2}{r_1}-\frac{1}{a_{\mathrm T}}\right)}\\&=${tn(route.transferDepartureSpeed)}\,\mathrm{km/s}\\v_{\mathrm{c1}}&=\sqrt{\frac{\mu_{\mathrm E}}{r_1}}\\&=${tn(route.departureCircularSpeed)}\,\mathrm{km/s}\end{aligned}`}
+          />
+          <MathFormula tex={departureFormula} />
+          <strong>{f(route.departureDeltaV)} km/s</strong>
+          <small>
+            {tr(
+              "地表・月面から周回軌道への打上げは含みません。",
+              "Launch from Earth's or the Moon's surface into orbit is excluded.",
+            )}
+          </small>
+        </article>
+        <article>
+          <span className="solar-step-number">03</span>
+          <h4>
+            {returning
+              ? tr(
+                  "出発方向と到着高度を確認",
+                  "Check departure direction and arrival altitude",
+                )
+              : tr("動く月と待ち合わせる", "Meet the moving Moon")}
+          </h4>
+          <p>
+            {returning
+              ? tr(
+                  "地球は中心に固定されています。月の出発方向や待ち時間は軌道を回転させ、所要時間と到着高度は変えません。",
+                  "Earth remains at the center. Departure direction and waiting rotate the path without changing flight time or arrival altitude.",
+                )
+              : tr(
+                  "待つ間、待機軌道の探査機と月が進みます。",
+                  "Waiting advances the parking spacecraft and the Moon.",
+                )}
+          </p>
+          <MathFormula tex={directionFormula} />
+          <strong>{f(route.arrivalMiss, 0)} km</strong>
+          <small>
+            {returning
+              ? tr(
+                  "比較するのは地球中心までの距離ではなく、到着高度と目標高度の差です。中心へ衝突する経路を目指すものではありません。",
+                  "This compares achieved and target altitude, rather than distance to Earth's center. The route does not aim at a central impact.",
+                )
+              : tr(
+                  "中心位置の一致は教材上の理想化です。月近傍への接近は連続した三体運動として解いていません。",
+                  "Coincident centers are a teaching idealization; the lunar approach is not solved as continuous three-body motion.",
+                )}
+          </small>
+        </article>
+        <article>
+          <span className="solar-step-number">04</span>
+          <h4>
+            {returning
+              ? tr("地球の円軌道へ減速", "Brake into the Earth circle")
+              : tr(
+                  "月の円軌道への減速を概算",
+                  "Estimate braking into lunar orbit",
+                )}
+          </h4>
+          <p>
+            {returning
+              ? tr(
+                  "帰還楕円の近点速度から、地球の円軌道速度まで減速します。帰還楕円は減速前から地球に束縛されています。",
+                  "Brake from return-ellipse periapsis speed to Earth circular speed. The return ellipse is already bound to Earth before braking.",
+                )
+              : tr(
+                  "月との参考相対速度を、月の局所捕獲モデルに使います。",
+                  "Use the reference Moon-relative speed in the independent lunar capture model.",
+                )}
+          </p>
+          <MathFormula
+            tex={String.raw`\begin{aligned}v_{\mathrm{T2}}&=\sqrt{\mu_{\mathrm E}\left(\frac{2}{r_2}-\frac{1}{a_{\mathrm T}}\right)}\\&=${tn(route.transferArrivalSpeed)}\,\mathrm{km/s}\\v_{\mathrm{c2}}&=\sqrt{\frac{\mu_{\mathrm E}}{r_2}}\\&=${tn(route.targetCircularSpeed)}\,\mathrm{km/s}\end{aligned}`}
+          />
+          <MathFormula tex={arrivalFormula} />
+          <strong>{f(route.arrivalDeltaV)} km/s</strong>
+          <small>
+            {returning
+              ? tr(
+                  "噴射による地球円軌道化です。着陸・大気圏再突入・大気減速は計算しません。",
+                  "This is propulsive Earth circularization. Landing, re-entry, and atmospheric braking are excluded.",
+                )
+              : tr(
+                  "月の局所近似と地球中心の楕円は、作用圏で接続した連続軌道ではありません。",
+                  "The local lunar approximation and Earth-centered ellipse are not joined at a sphere-of-influence boundary.",
+                )}
+          </small>
+        </article>
+      </div>
     </section>
   );
 }
@@ -968,7 +1463,10 @@ function RouteDiagram({
     current.probe.r,
   ];
   const lunar = route.frame === "earth";
-  const targetName = route.destination.name[lang];
+  const lunarReturn = route.lunarDirection === "return";
+  const targetName = lunarReturn
+    ? tr("地球到着軌道", "Earth arrival orbit")
+    : route.destination.name[lang];
   const closeToCenter = (position: Vec) =>
     Math.hypot(position[0] - center[0], position[1] - center[1]) < 45;
   const originLabel: Vec = closeToCenter(origin)
@@ -1026,7 +1524,7 @@ function RouteDiagram({
         >
           {lunar ? tr("地球", "Earth") : tr("太陽", "Sun")}
         </text>
-        {!lunar && (
+        {(!lunar || lunarReturn) && (
           <>
             <circle
               cx={origin[0]}
@@ -1055,19 +1553,27 @@ function RouteDiagram({
         >
           <title>{tr("出発位置", "Departure point")}</title>
         </circle>
-        <path
-          d={`M${target[0]},${target[1]}L${targetLabel[0] - 5},${targetLabel[1] + 4}`}
-          className="solar-label-line"
-        />
-        <circle
-          cx={target[0]}
-          cy={target[1]}
-          r="8"
-          className="solar-target-marker"
-        />
-        <text x={targetLabel[0]} y={targetLabel[1]} className="solar-svg-label">
-          {targetName}
-        </text>
+        {!lunarReturn && (
+          <>
+            <path
+              d={`M${target[0]},${target[1]}L${targetLabel[0] - 5},${targetLabel[1] + 4}`}
+              className="solar-label-line"
+            />
+            <circle
+              cx={target[0]}
+              cy={target[1]}
+              r="8"
+              className="solar-target-marker"
+            />
+            <text
+              x={targetLabel[0]}
+              y={targetLabel[1]}
+              className="solar-svg-label"
+            >
+              {targetName}
+            </text>
+          </>
+        )}
         {time > 0 && (
           <line
             x1={probe[0]}
@@ -1107,9 +1613,11 @@ function RouteDiagram({
         </span>
         <span>
           <i className="solar-legend-origin" />
-          {lunar
-            ? tr("地球待機軌道", "Earth parking orbit")
-            : route.origin.name[lang]}
+          {lunarReturn
+            ? tr("月の公転軌道", "Moon orbit")
+            : lunar
+              ? tr("地球待機軌道", "Earth parking orbit")
+              : route.origin.name[lang]}
         </span>
         <span>
           <i className="solar-legend-target" />

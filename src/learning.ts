@@ -384,15 +384,19 @@ export const manual: Localized<Manual> = {
     sections: [
       {
         title: "太陽系の航路を選ぶ",
-        body: "最初の画面「太陽系の航路」で、出発する惑星と目的地を選びます。水星・金星・地球・火星・木星・土星・天王星・海王星の異なる2惑星を結ぶ航路と、地球から月への航路を計算できます。月を選ぶと出発地は地球になります。同じ天体への移動と、月からの出発は対象外です。",
+        body: "最初の画面「太陽系の航路」で、出発天体と目的地を選びます。水星・金星・地球・火星・木星・土星・天王星・海王星の異なる2惑星を結ぶ航路と、地球→月・月→地球を計算できます。月を目的地にすると出発地は地球に、月を出発地にすると目的地は地球になります。月と地球以外の惑星との直行航路は対象外です。",
       },
       {
         title: "行き先と噴射条件を比較する",
-        body: "まず地球→火星、地球→月、地球→木星を比べ、飛行時間と必要な噴射量を確認しましょう。出発高度・到着高度で噴射量が変わり、位相角のずれ・待ち時間で待ち合わせ位置が変わります。到着減速の割合を変えると、飛び去る・束縛される・目標円軌道に入るという違いを調べられます。計算過程の数式には現在の値が代入されます。",
+        body: "まず地球→火星、地球→月、地球→木星を比べ、飛行時間と必要な噴射量を確認しましょう。出発高度・到着高度で噴射量が変わり、位相角のずれ・待ち時間で待ち合わせ位置が変わります。月→地球では地球が中心にあるため、初期角度と待ち時間は航路の向きを変えます。到着減速の割合で軌道の変化を調べられます。月→地球は減速しなくても地球に束縛された楕円で、減速により目標円軌道へ変わります。",
       },
       {
         title: "月と惑星の計算の違い",
-        body: "惑星間は太陽中心のホーマン遷移です。月へは地球中心の楕円で、待機円軌道から月の軌道半径まで進みます。この月行き噴射は地球からの脱出ではありません。到着側の減速は局所モデルによる近似値です。位置が合わない場合には、参考の到着速度や捕獲結果を、その航路で実現した到着と解釈しないでください。",
+        body: "惑星間は太陽中心、地球と月の往復は地球中心のホーマン遷移です。月行きでは待機円軌道から月の公転半径まで上がり、帰路では月の公転半径から地球の目標高度まで下がります。地球に対しては往復とも束縛された楕円です。月の脱出・捕獲は独立した近似です。帰路の到着は地球周回軌道への投入を表し、大気圏再突入・着陸は計算しません。",
+      },
+      {
+        title: "月の往路と復路を比較する",
+        body: "月を含む航路では、地球と月の同じ軌道高度を使い、往路・復路の飛行時間、出発・到着のΔv、合計と計算過程を並べて比較できます。往路・復路の表示ボタンは天体ごとの高度を引き継ぎ、位相・待ち時間を0、到着噴射を100%に戻します。地球200 km・月100 kmなら片道は約4.98日、地球側の噴射は約3.131 km/s、月側は約0.822 km/sです。この理想モデルでは飛行時間と合計が等しく、出発と到着の噴射量が入れ替わります。実際の帰還ミッションの所要時間や燃料が等しいという意味ではありません。",
       },
       {
         title: "まずは火星へ",
@@ -412,7 +416,7 @@ export const manual: Localized<Manual> = {
       },
       {
         title: "計算の流れと比較",
-        body: "各章の計算欄で、入力値・式への代入・結果・参考設定との差を順に確認できます。基礎実験の試す例を選ぶと条件と参考軌道の表示が切り替わります。火星への遷移では到着時点を表示します。位相角や待ち時間で遭遇位置は変わりますが、選んだホーマン遷移の飛行時間は変わりません。月行きでは出発高度により遷移楕円の大きさも変わります。",
+        body: "各章の計算欄で、入力値・式への代入・結果・参考設定との差を順に確認できます。基礎実験の試す例を選ぶと条件と参考軌道の表示が切り替わります。火星への遷移では到着時点を表示します。位相や待ち時間では選んだ遷移の飛行時間は変わりません。月の往復では地球側の高度が遷移楕円の大きさを変えます。月側の高度は月近傍の噴射量に反映されます。",
       },
       {
         title: "何をもって成功とする？",
@@ -443,15 +447,19 @@ export const manual: Localized<Manual> = {
     sections: [
       {
         title: "Choose a solar system route",
-        body: "Start in Solar system routes and choose a departure planet and destination. Any two distinct planets among Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, and Neptune are supported, plus Earth to the Moon. Choosing the Moon sets the origin to Earth. Same-body routes and departures from the Moon are outside this model.",
+        body: "Start in Solar system routes and choose an origin and destination. Any two distinct planets among Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, and Neptune are supported, plus Earth to the Moon and Moon to Earth. Choosing the Moon as the destination sets the origin to Earth; choosing it as the origin sets the destination to Earth. Direct routes between the Moon and other planets are outside this model.",
       },
       {
         title: "Compare destinations and burns",
-        body: "Try Earth to Mars, the Moon, and Jupiter; compare flight times and burn budgets. Departure and arrival altitudes change required burns, while phase offset and departure wait change encounter geometry. Change the capture-burn fraction to explore a flyby, bound capture, or the target circular orbit. The calculation steps substitute your current values into the equations.",
+        body: "Try Earth to Mars, the Moon, and Jupiter; compare flight times and burn budgets. Departure and arrival altitudes change required burns, while phase offset and waiting change encounter geometry. For Moon to Earth, Earth is at the center, so the initial angle and wait rotate the route. Change the arrival-burn fraction to explore orbital changes. The lunar return is already an Earth-bound ellipse without braking; braking changes it toward the target circle.",
       },
       {
         title: "Why the lunar calculation differs",
-        body: "Planetary routes follow a Sun-centered Hohmann transfer. The lunar route uses an Earth-centered ellipse from a parking circle to the Moon's orbital radius. This injection does not escape Earth. Arrival braking is an independent local approximation. When positions do not align, reference arrival speeds and capture results do not represent an arrival achieved by that trajectory.",
+        body: "Planetary routes follow Sun-centered transfers; both lunar directions use Earth-centered ellipses. Outbound travels from the Earth parking circle to the Moon's orbital radius, while return descends from that radius to the chosen Earth altitude. This injection does not escape Earth. Both ellipses remain Earth-bound. Lunar escape and capture are independent approximations. The Earth return target is a circular parking orbit; atmospheric entry and landing are not modeled.",
+      },
+      {
+        title: "Compare lunar outbound and return",
+        body: "For a lunar route, compare both directions at the same Earth and Moon orbit altitudes: flight time, departure and arrival burns, total Δv, and equations. The direction buttons retain the altitude associated with each body and reset phase and wait to zero and arrival braking to 100%. With Earth at 200 km and the Moon at 100 km, each leg takes about 4.98 days; the Earth burn is about 3.131 km/s and the Moon burn about 0.822 km/s. This ideal model gives equal times and totals with departure and arrival burns exchanged. Actual return missions need not have equal durations or fuel requirements.",
       },
       {
         title: "Start with Mars",
@@ -471,7 +479,7 @@ export const manual: Localized<Manual> = {
       },
       {
         title: "Follow the calculation",
-        body: "Each lab shows inputs, numerical substitution, results, and differences from the reference. Foundation examples apply settings and show the reference overlay; transfer examples jump to arrival. Phase and waiting time change encounter geometry without changing the selected Hohmann transfer’s duration. Lunar departure altitude also changes the transfer ellipse and its duration.",
+        body: "Each lab shows inputs, numerical substitution, results, and differences from the reference. Foundation examples apply settings and show the reference overlay; transfer examples jump to arrival. Phase and waiting do not change the selected transfer's duration. For both lunar directions, the Earth-side altitude changes the transfer ellipse and duration; the Moon-side altitude affects the local lunar burn.",
       },
       {
         title: "What counts as success?",

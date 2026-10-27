@@ -2,9 +2,9 @@
 
 **[ブラウザーで体験する / Open the app](https://takayuki-minagawa.github.io/space-probe/)**
 
-太陽系の8惑星と月を題材に、行き先や出発時期、噴射量が宇宙の旅に与える影響を学ぶWeb教材です。惑星間の航路、地球から月への航路、5つの基礎実験で、条件を変えながら軌道・所要時間・必要な速度変化を比較できます。
+太陽系の8惑星と月を題材に、行き先や出発時期、噴射量が宇宙の旅に与える影響を学ぶWeb教材です。惑星間の航路、地球と月の往路・復路、5つの基礎実験で、条件を変えながら軌道・所要時間・必要な速度変化を比較できます。
 
-Explore journeys among the eight planets and from Earth to the Moon. Change the destination, departure timing, or burns, then compare trajectories, travel time, and required velocity changes. Five guided experiments introduce the underlying orbital mechanics.
+Explore journeys among the eight planets and both directions between Earth and the Moon. Change the destination, departure timing, or burns, then compare trajectories, travel time, and required velocity changes. Five guided experiments introduce the underlying orbital mechanics.
 
 日本語／英語、ライト／ダーク表示に対応し、簡易マニュアルも両言語で利用できます。初期言語は日本語です。アカウント登録やインストールは必要ありません。
 
@@ -16,30 +16,45 @@ Japanese and English, light and dark themes, and a bilingual quick guide are ava
 
 1. 「太陽系の航路」で地球→月を選び、到着時の位置と約5日の飛行時間を確認します。
 2. 出発高度や位相のずれを変え、必要な噴射量や到着時の距離がどう変わるか比べます。TeXの計算過程で、入力値と結果をたどれます。
-3. 地球→火星や地球→木星へ切り替え、飛行時間と噴射量を比較します。基礎実験では、予想・ヒント・解説を使って一つずつ学べます。
+3. 「月の往路と復路を比べる」で飛行時間と出発・到着のΔvを見比べ、「復路を表示」で月→地球の計算へ切り替えます。地球→火星や地球→木星も比較でき、基礎実験では予想・ヒント・解説を使って学べます。
 
 **English**
 
 1. In **Solar system routes**, select Earth → Moon and inspect the arrival position and roughly five-day flight time.
 2. Change departure altitude or phase offset, then compare the required burn and arrival distance. Follow the inputs through the TeX calculations.
-3. Switch to Earth → Mars or Earth → Jupiter and compare travel time and burns. Use the guided experiments for predictions, hints, and explanations.
+3. In **Compare lunar outbound and return routes**, compare flight times and departure/arrival Δv, then select **Show return** to inspect Moon → Earth. Also try Earth → Mars or Earth → Jupiter, or use the guided experiments for predictions, hints, and explanations.
 
 ## 行き先を選んで比較 / Choose a route
 
-水星・金星・地球・火星・木星・土星・天王星・海王星から出発地と目的地を選べます。同じ惑星を除く56通りの惑星間航路に、地球→月を加えた57通りを扱います。月を選ぶと出発地は地球になります。月からの出発と、他の惑星の衛星は対象に含みません。
+水星・金星・地球・火星・木星・土星・天王星・海王星から出発地と目的地を選べます。同じ惑星を除く56通りの惑星間航路に、地球→月と月→地球を加えた58通りを扱います。月を含む航路の相手は地球です。月と他の惑星の直行航路や、他の惑星の衛星は対象に含みません。
 
-Choose an origin and destination among Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, and Neptune. There are 56 ordered planet-to-planet routes plus Earth → Moon. Selecting the Moon sets the origin to Earth. Departures from the Moon and other planetary moons are outside this module.
+Choose an origin and destination among Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, and Neptune. There are 56 ordered planet-to-planet routes plus Earth → Moon and Moon → Earth: 58 routes in total. Lunar routes connect only with Earth. Direct routes between the Moon and other planets, and other planetary moons, are outside this module.
 
 | 変える条件 / Setting | 比較できること / What changes |
 | --- | --- |
 | 出発地・目的地 / Origin and destination | 遷移軌道、飛行時間、出発・到着の速度。 / Transfer ellipse, flight time, and departure/arrival speeds. |
-| 出発・到着高度 / Departure and arrival altitude | 待機円軌道からの噴射と、目的地の円軌道への減速量。月では出発高度によって遷移軌道も変化します。 / Departure and circular-capture burns; lunar departure altitude also changes the transfer ellipse. |
-| 位相のずれ・出発待ち / Phase offset and wait | 到着時に目的地と待ち合わせられるか。 / Whether the spacecraft and destination meet at arrival. |
+| 出発・到着高度 / Departure and arrival altitude | 待機円軌道からの噴射と、目的地の円軌道への減速量。月の往復では地球側の高度によって遷移楕円も変化します。 / Departure and circular-capture burns; the Earth-side altitude also changes the lunar transfer ellipse in either direction. |
+| 位相のずれ・出発待ち / Phase offset and wait | 惑星間・月往路では到着位置。月復路では出発方向と楕円の向き。 / Encounter geometry for planetary and outbound lunar routes; departure direction and ellipse orientation for lunar return. |
 | 捕獲噴射の割合 / Capture burn fraction | 減速後の束縛・通過、近点・遠点、目標円軌道との差。 / Bound capture or flyby, apsides, and deviation from the target circular orbit. |
 
-位相や待ち時間の変更は、選択したホーマン遷移の形と飛行時間を変えません。到着時に離れている場合、局所的な捕獲計算は「予定どおり遭遇した場合」の参考値です。噴射を増やすだけで到着位置のずれを修正する機能ではありません。
+位相や待ち時間の変更は、選択したホーマン遷移の形と飛行時間を変えません。惑星間・月往路で到着時に離れている場合、局所的な捕獲計算は「予定どおり遭遇した場合」の参考値です。噴射を増やすだけで到着位置のずれを修正する機能ではありません。月復路は地球中心の近点を目標高度へ合わせる計算で、動く地球との待ち合わせではありません。
 
-Phase and waiting change encounter geometry without changing the chosen Hohmann ellipse or flight duration. When the route misses, local capture calculations remain a reference for an aligned encounter; increasing the capture burn does not correct that miss.
+Phase and waiting do not change the chosen Hohmann ellipse's shape or flight duration. On planetary and outbound lunar routes, a miss leaves local capture as a reference for an aligned encounter; increasing the capture burn does not correct the miss. Lunar return targets a geocentric periapsis altitude rather than a rendezvous with a moving Earth.
+
+## 月の往路と復路を比べる / Compare lunar outbound and return routes
+
+月の航路を選ぶと、同じ地球側・月側の高度で、往路と復路の飛行時間・出発Δv・到着Δv・合計Δvを並べて確認できます。比較欄は、基準の位相・待ち時間と、目標円軌道に必要な減速量で計算します。「往路を表示」「復路を表示」は両天体の高度を保って方向を切り替え、位相・待ち時間・噴射割合を参考条件へ戻します。両方向のTeX数式では、現在の高度を使った計算をたどれます。
+
+Selecting a lunar route shows outbound and return flight time, departure Δv, arrival Δv, and total Δv at matching Earth and Moon altitudes. The comparison uses reference phase/wait conditions and full circularization burns. **Show outbound** and **Show return** preserve each body's altitude while resetting phase, wait, and burn fraction to the reference. TeX equations show both calculations using the selected altitudes.
+
+| 地球200 km・月100 kmの参考条件 / Reference: Earth 200 km, Moon 100 km | 飛行時間 / Flight time | 出発Δv / Departure Δv | 到着Δv / Arrival Δv | 合計Δv / Total Δv |
+| --- | ---: | ---: | ---: | ---: |
+| 地球→月 / Earth → Moon | 4.978日 / days | 3.131 km/s | 0.822 km/s | 3.953 km/s |
+| 月→地球 / Moon → Earth | 4.978日 / days | 0.822 km/s | 3.131 km/s | 3.953 km/s |
+
+この対称な近似モデルでは、同じ両端条件を逆向きにたどるため、飛行時間と合計Δvは等しく、出発・到着の噴射量が入れ替わります。実ミッションの往復で燃料や日程が等しいという意味ではありません。月復路の目標は**地球の円軌道**で、地表への帰還・大気圏再突入・大気による減速は計算しません。
+
+The symmetric approximation follows the same endpoint conditions in reverse, so flight time and total Δv match while departure and arrival burns swap. This does not imply equal fuel use or schedules for real outbound and return missions. The lunar return target is an **Earth circular orbit**; landing, atmospheric entry, and atmospheric braking are not modeled.
 
 ## 5つの基礎実験 / Five guided experiments
 
@@ -72,10 +87,10 @@ Navigate with Tab, use Enter/Space for buttons, and arrow keys for sliders. Noth
 **An educational approximation, not for actual launch, spacecraft operations, or navigation.**
 
 - 2次元・同一平面・惑星の円軌道・二体重力・瞬時噴射を仮定します。 / Two dimensions, one plane, circular planetary orbits, two-body gravity, and instantaneous burns.
-- 惑星間の飛行は太陽中心、月への飛行は地球中心で計算します。月への出発噴射は地球に束縛された楕円軌道への投入です。 / Planetary transfers use a Sun-centered frame; lunar transfer uses an Earth-centered, bound ellipse.
+- 惑星間の飛行は太陽中心、月の往復は地球中心で計算します。月往路の地球出発と月復路の地球到着には、地球に束縛された楕円の速度を使います。 / Planetary transfers use a Sun-centered frame; both lunar directions use a bound Earth-centered ellipse, including Earth departure and return arrival.
 - 出発・捕獲の局所計算は独立した近似です。遷移軌道と有限の作用圏で接続した一本の航法解ではありません。 / Local departure/capture estimates are independent approximations, not a navigation trajectory joined at finite spheres of influence.
 - 遭遇と捕獲・目標円軌道を別に判定します。遭遇の許容距離は教材上の値で、実ミッションの接近条件ではありません。 / Encounter, bound capture, and the target circle are separate evaluations. Encounter tolerances are teaching choices, not operational approach criteria.
-- 地球→火星の参考飛行時間は約259日、地球→月は約5日です。実際のミッションでは別の航路や飛行時間を選ぶことがあります。 / Reference flights take about 259 days to Mars and five days to the Moon. Actual missions can use different trajectories and durations.
+- 地球→火星の参考飛行時間は約259日、月の往路・復路はそれぞれ約5日です。実際のミッションでは別の航路や飛行時間を選ぶことがあります。 / Reference flights take about 259 days to Mars and five days for each lunar direction. Actual missions can use different trajectories and durations.
 - 巨大惑星の高度は採用した基準半径から測ります。固い地表への着陸を表しません。大気・環・放射線などによる制約は計算しません。 / Giant-planet altitudes use a reference radius, not a solid landing surface. Atmospheres, rings, and radiation constraints are omitted.
 - 地表打上げ、大気、有限燃焼、3D、多天体摂動、実暦による打上げ窓は扱いません。 / Surface launch, atmospheres, finite burns, 3D, perturbations, and calendar launch windows are outside the model.
 

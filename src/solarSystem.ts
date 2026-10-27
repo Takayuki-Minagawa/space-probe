@@ -158,7 +158,7 @@ export const BODIES: Readonly<Record<BodyId, Readonly<Body>>> = Object.freeze({
   }),
 });
 
-export const SOLAR_SYSTEM_MODEL = "circular-solar-lunar-1.0.0";
+export const SOLAR_SYSTEM_MODEL = "circular-solar-lunar-1.1.0";
 export const SOLAR_SYSTEM_SOURCES = [
   {
     url: "https://ssd.jpl.nasa.gov/astro_par.html",
@@ -192,7 +192,7 @@ export const SOLAR_SYSTEM_SOURCES = [
 ] as const;
 
 export interface RouteInputs {
-  origin: PlanetId;
+  origin: BodyId;
   destination: BodyId;
   departureAltitude: number;
   arrivalAltitude: number;
@@ -205,6 +205,9 @@ export interface RouteResult {
   origin: Readonly<Body>;
   destination: Readonly<Body>;
   frame: "sun" | "earth";
+  lunarDirection: "outbound" | "return" | null;
+  /** Return reaches an Earth-centered orbit radius, not Earth's center. */
+  encounterKind: "body-center" | "orbit-radius";
   mu: number;
   departureRadius: number;
   targetRadius: number;
@@ -222,12 +225,14 @@ export interface RouteResult {
   arrivalSignedChange: number;
   /** Null for lunar injection: the Earth-centered transfer remains bound. */
   departureExcess: number | null;
-  /** Approximate aligned-reference relative speed used in the separate capture lab. */
-  arrivalExcess: number;
+  /** Null for lunar return: arrival is a bound Earth-centered perigee. */
+  arrivalExcess: number | null;
   nDeparture: number;
   nTarget: number;
+  /** Reference target lead, or zero when Earth is the stationary return target. */
   phaseAngle: number;
   departureAngle: number;
+  /** On lunar return this is departure orientation, not a moving target's lead. */
   departurePhase: number;
   departureDeltaV: number;
   arrivalDeltaV: number;
@@ -250,16 +255,18 @@ function bounded(value: number, min: number, max: number, name: string) {
   if (!Number.isFinite(value) || value < min || value > max)
     throw new RangeError(`${name}: expected a finite value in ${min}…${max}`);
 }
-function checkPair(origin: PlanetId, destination: BodyId) {
-  if (!PLANET_IDS.includes(origin) || !BODY_IDS.includes(destination))
+function checkPair(origin: BodyId, destination: BodyId) {
+  if (!BODY_IDS.includes(origin) || !BODY_IDS.includes(destination))
     throw new RangeError("Unknown origin or destination");
   if (origin === destination) throw new RangeError("Choose different bodies");
   if (destination === "moon" && origin !== "earth")
     throw new RangeError("Lunar routes depart from Earth");
+  if (origin === "moon" && destination !== "earth")
+    throw new RangeError("Lunar return routes arrive at Earth");
 }
 
 export function defaultRouteInputs(
-  origin: PlanetId = "earth",
+  origin: BodyId = "earth",
   destination: BodyId = "mars",
 ): RouteInputs {
   checkPair(origin, destination);
@@ -274,11 +281,29 @@ export function defaultRouteInputs(
   };
 }
 
+/** Reverse a lunar reference while retaining the same Earth and Moon altitudes. */
+export function reverseLunarInputs(input: RouteInputs): RouteInputs {
+  checkPair(input.origin, input.destination);
+  if (input.origin !== "moon" && input.destination !== "moon")
+    throw new RangeError("Only Earth–Moon routes can be reversed here");
+  calculateRoute(input);
+  return {
+    origin: input.destination,
+    destination: input.origin,
+    departureAltitude: input.arrivalAltitude,
+    arrivalAltitude: input.departureAltitude,
+    phaseOffset: 0,
+    waitDays: 0,
+    captureFraction: 1,
+  };
+}
+
 /**
  * An ideal Hohmann half ellipse plus independent local energy estimates.
  * No finite sphere-of-influence joins, atmosphere, rings, or ephemerides.
- * Moon departure is a bound Earth-centered injection; lunar capture treats the
- * aligned end-point relative speed as an approximate local arrival v-infinity.
+ * Earth-to-Moon injection and Moon-to-Earth arrival belong to a bound
+ * Earth-centered ellipse. Moon capture/escape uses an independent local
+ * energy estimate based on the aligned transfer's Moon-relative speed.
  */
 export function calculateRoute(input: RouteInputs): RouteResult {
   checkPair(input.origin, input.destination);
@@ -300,12 +325,18 @@ export function calculateRoute(input: RouteInputs): RouteResult {
   bounded(input.waitDays, 0, 100000, "waiting days");
   bounded(input.captureFraction, 0, 1.5, "capture fraction");
   const inputs = Object.freeze({ ...input });
-  const lunar = destination.id === "moon";
+  const lunarOutbound = destination.id === "moon";
+  const lunarReturn = origin.id === "moon";
+  const lunar = lunarOutbound || lunarReturn;
   const mu = lunar ? K.muEarth : K.muSun;
   const departureParkingRadius = origin.radius + inputs.departureAltitude;
   const arrivalParkingRadius = destination.radius + inputs.arrivalAltitude;
-  const departureRadius = lunar ? departureParkingRadius : origin.orbitRadius;
-  const targetRadius = destination.orbitRadius;
+  const departureRadius = lunarOutbound
+    ? departureParkingRadius
+    : origin.orbitRadius;
+  const targetRadius = lunarReturn
+    ? arrivalParkingRadius
+    : destination.orbitRadius;
   const semiMajor = (departureRadius + targetRadius) / 2;
   const eccentricity =
     Math.abs(targetRadius - departureRadius) / (targetRadius + departureRadius);
@@ -320,24 +351,35 @@ export function calculateRoute(input: RouteInputs): RouteResult {
   );
   const departureSignedChange = transferDepartureSpeed - departureCircularSpeed;
   const arrivalSignedChange = targetCircularSpeed - transferArrivalSpeed;
-  const departureExcess = lunar ? null : Math.abs(departureSignedChange);
-  const arrivalExcess = Math.abs(arrivalSignedChange);
+  const departureExcess = lunarOutbound
+    ? null
+    : Math.abs(departureSignedChange);
+  const arrivalExcess = lunarReturn ? null : Math.abs(arrivalSignedChange);
   const nDeparture = Math.sqrt(mu / departureRadius ** 3);
-  const nTarget = Math.sqrt(mu / targetRadius ** 3);
-  const phaseAngle = normalizeAngle(Math.PI - nTarget * flightTime);
+  // Earth is at the origin on return; it has no target orbital phase to catch.
+  const nTarget = lunarReturn ? 0 : Math.sqrt(mu / targetRadius ** 3);
+  const phaseAngle = lunarReturn
+    ? 0
+    : normalizeAngle(Math.PI - nTarget * flightTime);
   const waiting = inputs.waitDays * K.DAY;
-  const departureAngle = normalizeAngle(nDeparture * waiting);
-  const departurePhase = normalizeAngle(
-    phaseAngle + rad(inputs.phaseOffset) + (nTarget - nDeparture) * waiting,
+  const departureAngle = normalizeAngle(
+    nDeparture * waiting + (lunarReturn ? rad(inputs.phaseOffset) : 0),
   );
-  const departureDeltaV = lunar
+  const departurePhase = lunarReturn
+    ? departureAngle
+    : normalizeAngle(
+        phaseAngle + rad(inputs.phaseOffset) + (nTarget - nDeparture) * waiting,
+      );
+  const departureDeltaV = lunarOutbound
     ? departureSignedChange
     : Math.sqrt(
         departureExcess! ** 2 + (2 * origin.mu) / departureParkingRadius,
       ) - Math.sqrt(origin.mu / departureParkingRadius);
-  const beforeBurn = Math.sqrt(
-    arrivalExcess ** 2 + (2 * destination.mu) / arrivalParkingRadius,
-  );
+  const beforeBurn = lunarReturn
+    ? transferArrivalSpeed
+    : Math.sqrt(
+        arrivalExcess! ** 2 + (2 * destination.mu) / arrivalParkingRadius,
+      );
   const arrivalDeltaV =
     beforeBurn - Math.sqrt(destination.mu / arrivalParkingRadius);
   const captureBurn = inputs.captureFraction * arrivalDeltaV;
@@ -372,6 +414,8 @@ export function calculateRoute(input: RouteInputs): RouteResult {
     origin,
     destination,
     frame: lunar ? "earth" : "sun",
+    lunarDirection: lunarOutbound ? "outbound" : lunarReturn ? "return" : null,
+    encounterKind: lunarReturn ? "orbit-radius" : "body-center",
     mu,
     departureRadius,
     targetRadius,
@@ -406,10 +450,13 @@ export function calculateRoute(input: RouteInputs): RouteResult {
     },
     arrivalMiss: 0,
     encounter: false,
-    encounterTolerance: lunar ? 1000 : 10000,
+    encounterTolerance: lunarReturn ? 1 : lunarOutbound ? 1000 : 10000,
     synodicPeriod: (2 * Math.PI) / Math.abs(nDeparture - nTarget),
   };
-  route.arrivalMiss = routeAt(route, flightTime).distance;
+  const arrival = routeAt(route, flightTime);
+  route.arrivalMiss = lunarReturn
+    ? Math.abs(norm(arrival.probe.r) - targetRadius)
+    : arrival.distance;
   route.encounter = route.arrivalMiss <= route.encounterTolerance;
   return route;
 }
@@ -422,7 +469,7 @@ function circularState(radius: number, speed: number, angle: number): State {
   };
 }
 
-/** Waiting follows both planets, or the parking spacecraft and Moon in lunar mode. */
+/** Lunar return rotates departure with the Moon; Earth remains at the origin. */
 export function routeAt(route: RouteResult, time: number) {
   bounded(time, 0, route.flightTime, "elapsed time");
   const initial = circularState(
@@ -432,18 +479,21 @@ export function routeAt(route: RouteResult, time: number) {
   );
   const probe = propagate(initial, route.mu, time);
   const origin: State =
-    route.frame === "earth"
+    route.lunarDirection === "outbound"
       ? { r: [0, 0], v: [0, 0] }
       : circularState(
           route.departureRadius,
           route.departureCircularSpeed,
           route.departureAngle + route.nDeparture * time,
         );
-  const target = circularState(
-    route.targetRadius,
-    route.targetCircularSpeed,
-    route.departureAngle + route.departurePhase + route.nTarget * time,
-  );
+  const target: State =
+    route.lunarDirection === "return"
+      ? { r: [0, 0], v: [0, 0] }
+      : circularState(
+          route.targetRadius,
+          route.targetCircularSpeed,
+          route.departureAngle + route.departurePhase + route.nTarget * time,
+        );
   return { probe, origin, target, distance: norm(sub(probe.r, target.r)) };
 }
 
