@@ -3,6 +3,7 @@ import type { Vec } from "./physics";
 import type { Lang } from "./learning";
 import { vectorPath } from "./simulation";
 import type { Simulation, Parameters } from "./simulation";
+import MathFormula from "./MathFormula";
 export type Layers = {
   vectors: boolean;
   trail: boolean;
@@ -182,9 +183,12 @@ export default function OrbitDiagram({
             "var(--accent)",
             5,
           )}
-          <text x="225" y="375" className="plot-label">
-            v☉ = vplanet + v∞
-          </text>
+          <foreignObject x="225" y="350" width="400" height="40">
+            <MathFormula
+              tex={String.raw`\mathbf v_{\mathrm{Sun}}=\mathbf v_{\mathrm{Planet}}+\mathbf v_\infty`}
+              display={false}
+            />
+          </foreignObject>
           <text x="225" y="401" className="plot-caption">
             {en ? "Vector scale: 5 px per km/s" : "ベクトル縮尺：5 px / (km/s)"}
           </text>
@@ -225,7 +229,10 @@ export default function OrbitDiagram({
                   Math.hypot(
                     mission.mars.r[0] - sim.arrival.mars.r[0],
                     mission.mars.r[1] - sim.arrival.mars.r[1],
-                  ) < extent * 0.12 ? -64 : -11,
+                  ) <
+                    extent * 0.12
+                    ? -64
+                    : -11,
                 )}
               {layers.markers && (
                 <>

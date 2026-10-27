@@ -407,6 +407,9 @@ test("TeX equations render in every lab with local fonts and accessible MathML",
   }
   await page.getByRole("button", { name: "English", exact: true }).click();
   await page.getByRole("button", { name: "Light mode", exact: true }).click();
+  await page.getByRole("button", { name: "Sun", exact: true }).click();
+  await expect(page.locator(".orbit-svg foreignObject .katex")).toBeVisible();
+  await expect(page.locator(".orbit-svg foreignObject math")).toHaveCount(1);
   await expect(page.locator(".calculation-equation .katex-mathml")).toHaveCount(
     3,
   );

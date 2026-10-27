@@ -53,17 +53,18 @@ Official Action versions and pinned SHAs are recorded in the [CI](../.github/wor
 
 Direct versions are in [package.json](../package.json), and transitive versions are in [package-lock.json](../package-lock.json). Each package includes its license text.
 
-| 依存 / Dependency               | License    |
-| ------------------------------- | ---------- |
-| React / React DOM               | MIT        |
-| KaTeX                           | MIT        |
-| @types/react / @types/react-dom | MIT        |
-| Vite / @vitejs/plugin-react     | MIT        |
-| TypeScript                      | Apache-2.0 |
-| Vitest                          | MIT        |
-| ESLint / typescript-eslint      | MIT        |
-| @playwright/test                | Apache-2.0 |
+| 依存 / Dependency               | License     |
+| ------------------------------- | ----------- |
+| React / React DOM               | MIT         |
+| KaTeX（コード / code）          | MIT         |
+| KaTeX fonts                     | SIL OFL 1.1 |
+| @types/react / @types/react-dom | MIT         |
+| Vite / @vitejs/plugin-react     | MIT         |
+| TypeScript                      | Apache-2.0  |
+| Vitest                          | MIT         |
+| ESLint / typescript-eslint      | MIT         |
+| @playwright/test                | Apache-2.0  |
 
-React、React DOM、KaTeXが実行時の依存です。残りは開発・検証用です。[KaTeXのライセンス本文](../public/katex-LICENSE.txt) は配信成果物にも含めています。本リポジトリにはプロジェクト全体の `LICENSE` ファイルを設けていません。この一覧は依存ライブラリのライセンスを示します。
+React、React DOM、KaTeXが実行時の依存です。残りは開発・検証用です。KaTeXのコードはMIT、同梱フォントはSIL Open Font License 1.1です。[コードのライセンス本文](../public/katex-LICENSE.txt) と[フォントの著作権表示・ライセンス本文](../public/katex-fonts-LICENSE.txt) を配信成果物にも含めています。フォントは変更せず同梱し、そのメタデータに記載された著作権・予約フォント名と、[SIL公式のOFL本文](https://openfontlicense.org/open-font-license-official-text/) を収録しています。本リポジトリにはプロジェクト全体の `LICENSE` ファイルを設けていません。この一覧は依存ライブラリとフォントのライセンスを示します。
 
-React, React DOM, and KaTeX are runtime dependencies; the remaining packages are development/test tools. The [KaTeX license](../public/katex-LICENSE.txt) is also included in the published site. This repository has no project-wide `LICENSE` file. The table describes dependency licenses.
+React, React DOM, and KaTeX are runtime dependencies; the remaining packages are development/test tools. KaTeX code uses MIT, while its bundled fonts use SIL Open Font License 1.1. The published site includes both the [code license](../public/katex-LICENSE.txt) and [font copyright notices and license](../public/katex-fonts-LICENSE.txt). Fonts are bundled unmodified; their metadata supplies the copyright and Reserved Font Names, accompanied by the [official SIL OFL text](https://openfontlicense.org/open-font-license-official-text/). This repository has no project-wide `LICENSE` file. The table describes dependency and font licenses.

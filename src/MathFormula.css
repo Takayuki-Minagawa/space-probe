@@ -16,6 +16,7 @@
   display: inline-block;
   vertical-align: middle;
   padding: 3px 0;
+  overflow: visible;
 }
 
 .math-formula .katex {
