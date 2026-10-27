@@ -2,9 +2,9 @@
 
 **[ブラウザーで体験する / Open the app](https://takayuki-minagawa.github.io/space-probe/)**
 
-太陽系の8惑星と月を題材に、行き先や出発時期、噴射量が宇宙の旅に与える影響を学ぶWeb教材です。惑星間の航路、地球と月の往路・復路、5つの基礎実験で、条件を変えながら軌道・所要時間・必要な速度変化を比較できます。
+太陽系の8惑星と月を題材に、行き先や出発時期、噴射量が宇宙の旅に与える影響を学ぶWeb教材です。惑星間の航路、地球と各惑星・月の往復比較、5つの基礎実験で、条件を変えながら軌道・所要時間・必要な速度変化を比較できます。
 
-Explore journeys among the eight planets and both directions between Earth and the Moon. Change the destination, departure timing, or burns, then compare trajectories, travel time, and required velocity changes. Five guided experiments introduce the underlying orbital mechanics.
+Explore journeys among the eight planets and compare both directions between Earth and each planet or the Moon. Change the destination, departure timing, or burns, then compare trajectories, travel time, and required velocity changes. Five guided experiments introduce the underlying orbital mechanics.
 
 日本語／英語、ライト／ダーク表示に対応し、簡易マニュアルも両言語で利用できます。初期言語は日本語です。アカウント登録やインストールは必要ありません。
 
@@ -16,13 +16,13 @@ Japanese and English, light and dark themes, and a bilingual quick guide are ava
 
 1. 「太陽系の航路」で地球→月を選び、到着時の位置と約5日の飛行時間を確認します。
 2. 出発高度や位相のずれを変え、必要な噴射量や到着時の距離がどう変わるか比べます。TeXの計算過程で、入力値と結果をたどれます。
-3. 「月の往路と復路を比べる」で飛行時間と出発・到着のΔvを見比べ、「復路を表示」で月→地球の計算へ切り替えます。地球→火星や地球→木星も比較でき、基礎実験では予想・ヒント・解説を使って学べます。
+3. 「月の往路と復路を比べる」で飛行時間と出発・到着のΔvを見比べ、「復路を表示」で月→地球の計算へ切り替えます。地球→火星や地球→木星でも同様に往復を比較できます。基礎実験では予想・ヒント・解説を使って学べます。
 
 **English**
 
 1. In **Solar system routes**, select Earth → Moon and inspect the arrival position and roughly five-day flight time.
 2. Change departure altitude or phase offset, then compare the required burn and arrival distance. Follow the inputs through the TeX calculations.
-3. In **Compare lunar outbound and return routes**, compare flight times and departure/arrival Δv, then select **Show return** to inspect Moon → Earth. Also try Earth → Mars or Earth → Jupiter, or use the guided experiments for predictions, hints, and explanations.
+3. In **Compare lunar outbound and return routes**, compare flight times and departure/arrival Δv, then select **Show return** to inspect Moon → Earth. Compare both directions for Earth–Mars or Earth–Jupiter in the same way. Use the guided experiments for predictions, hints, and explanations.
 
 ## 行き先を選んで比較 / Choose a route
 
@@ -40,6 +40,25 @@ Choose an origin and destination among Mercury, Venus, Earth, Mars, Jupiter, Sat
 位相や待ち時間の変更は、選択したホーマン遷移の形と飛行時間を変えません。惑星間・月往路で到着時に離れている場合、局所的な捕獲計算は「予定どおり遭遇した場合」の参考値です。噴射を増やすだけで到着位置のずれを修正する機能ではありません。月復路は地球中心の近点を目標高度へ合わせる計算で、動く地球との待ち合わせではありません。
 
 Phase and waiting do not change the chosen Hohmann ellipse's shape or flight duration. On planetary and outbound lunar routes, a miss leaves local capture as a reference for an aligned encounter; increasing the capture burn does not correct the miss. Lunar return targets a geocentric periapsis altitude rather than a rendezvous with a moving Earth.
+
+## 惑星の往路と復路を比べる / Compare planetary outbound and return routes
+
+地球と水星・金星・火星・木星・土星・天王星・海王星の航路では、地球からの往路と地球への復路を並べて比較できます。比較欄は両天体で同じ周回高度を使い、位相のずれ・待ち時間を0、到着時の円軌道化を100%とした参考条件で、飛行時間・出発Δv・到着Δv・合計Δvとその差を表示します。TeX数式で、太陽中心の飛行と各惑星近傍の噴射を分けてたどれます。
+
+For routes between Earth and Mercury, Venus, Mars, Jupiter, Saturn, Uranus, or Neptune, compare the Earth outbound and Earth return directions side by side. Both use matching per-body parking altitudes, zero phase offset and waiting time, and full arrival circularization. The table shows flight time, departure Δv, arrival Δv, total Δv, and their differences. TeX equations distinguish the Sun-centered transfer from burns near each planet.
+
+「往路を表示」「復路を表示」は天体ごとの高度を保って方向を切り替え、位相・待ち時間を0、噴射割合を1へ戻します。高度を変えると必要な局所Δvは変わりますが、この惑星間モデルの飛行時間は公転半径で決まり、高度には依存しません。
+
+**Show outbound** and **Show return** keep each body's altitude while resetting phase and wait to zero and the burn fraction to one. Altitude changes affect local Δv, while planetary flight time depends on the fixed orbital radii rather than parking altitude.
+
+| 地球200 km・火星300 kmの参考条件 / Reference: Earth 200 km, Mars 300 km | 飛行時間 / Flight time | 出発Δv / Departure Δv | 到着Δv / Arrival Δv | 合計Δv / Total Δv |
+| --- | ---: | ---: | ---: | ---: |
+| 地球→火星 / Earth → Mars | 258.87日 / days | 3.611 km/s | 2.091 km/s | 5.703 km/s |
+| 火星→地球 / Mars → Earth | 258.87日 / days | 2.091 km/s | 3.611 km/s | 5.703 km/s |
+
+同じ公転半径と周回高度では、往復の飛行時間と合計Δvが等しく、出発・到着のΔvが入れ替わります。一方、目的地が動く速さは方向によって異なるため、参考の先行角は別に計算します。比較欄は各方向を独立した参考条件で評価し、到着直後にそのまま帰れることや、実ミッションの往復で燃料・総日程が等しいことを示すものではありません。地球復路の目標は周回円軌道で、大気圏再突入・着陸・大気による減速は含みません。
+
+At matching orbital radii and parking altitudes, flight time and total Δv are equal, while departure and arrival Δv swap. Reference lead angles are calculated separately because the destination's angular speed differs by direction. Each direction is an independent reference; the comparison does not imply an immediate return after arrival or equal fuel use and total schedules in real missions. The Earth return target is a circular parking orbit; atmospheric entry, landing, and atmospheric braking are excluded.
 
 ## 月の往路と復路を比べる / Compare lunar outbound and return routes
 

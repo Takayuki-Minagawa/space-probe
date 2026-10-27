@@ -158,7 +158,7 @@ export const BODIES: Readonly<Record<BodyId, Readonly<Body>>> = Object.freeze({
   }),
 });
 
-export const SOLAR_SYSTEM_MODEL = "circular-solar-lunar-1.1.0";
+export const SOLAR_SYSTEM_MODEL = "circular-solar-lunar-1.2.0";
 export const SOLAR_SYSTEM_SOURCES = [
   {
     url: "https://ssd.jpl.nasa.gov/astro_par.html",
@@ -281,11 +281,8 @@ export function defaultRouteInputs(
   };
 }
 
-/** Reverse a lunar reference while retaining the same Earth and Moon altitudes. */
-export function reverseLunarInputs(input: RouteInputs): RouteInputs {
-  checkPair(input.origin, input.destination);
-  if (input.origin !== "moon" && input.destination !== "moon")
-    throw new RangeError("Only Earth–Moon routes can be reversed here");
+/** Reverse a supported reference while retaining each body's parking altitude. */
+export function reverseRouteInputs(input: RouteInputs): RouteInputs {
   calculateRoute(input);
   return {
     origin: input.destination,
@@ -296,6 +293,14 @@ export function reverseLunarInputs(input: RouteInputs): RouteInputs {
     waitDays: 0,
     captureFraction: 1,
   };
+}
+
+/** Lunar-only wrapper retained for the dedicated Earth–Moon comparison. */
+export function reverseLunarInputs(input: RouteInputs): RouteInputs {
+  checkPair(input.origin, input.destination);
+  if (input.origin !== "moon" && input.destination !== "moon")
+    throw new RangeError("Only Earth–Moon routes can be reversed here");
+  return reverseRouteInputs(input);
 }
 
 /**

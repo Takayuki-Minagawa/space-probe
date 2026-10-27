@@ -15,6 +15,7 @@ import {
   calculateRoute,
   defaultRouteInputs,
   reverseLunarInputs,
+  reverseRouteInputs,
   routeAt,
   sampleRoute,
   type BodyId,
@@ -144,6 +145,117 @@ describe("planetary route model", () => {
     expect(arrival.arrivalDeltaV).not.toBe(reference.arrivalDeltaV);
     expect(departure.flightTime).toBe(reference.flightTime);
     expect(arrival.flightTime).toBe(reference.flightTime);
+  });
+});
+
+describe("planetary outbound and return references", () => {
+  it.each(PLANET_IDS.filter((id) => id !== "earth"))(
+    "Earth ↔ %s shares flight time and exchanges local burns at matching heights",
+    (planet) => {
+      const input = defaultRouteInputs("earth", planet);
+      const outbound = calculateRoute(input);
+      const inbound = calculateRoute(reverseRouteInputs(input));
+      expect(inbound.frame).toBe("sun");
+      expect(inbound.lunarDirection).toBeNull();
+      expect(inbound.encounterKind).toBe("body-center");
+      expect(inbound.flightTime).toBe(outbound.flightTime);
+      expect(inbound.departureDeltaV).toBe(outbound.arrivalDeltaV);
+      expect(inbound.arrivalDeltaV).toBe(outbound.departureDeltaV);
+      expect(inbound.totalDeltaV).toBe(outbound.totalDeltaV);
+      expect(inbound.departureExcess).toBe(outbound.arrivalExcess);
+      expect(inbound.arrivalExcess).toBe(outbound.departureExcess);
+      expect(inbound.arrivalExcess).toBeGreaterThan(0);
+      expect(inbound.departureSignedChange).toBe(-outbound.arrivalSignedChange);
+      expect(inbound.arrivalSignedChange).toBe(-outbound.departureSignedChange);
+      expect(inbound.phaseAngle).not.toBe(outbound.phaseAngle);
+      expect(inbound.encounter).toBe(true);
+      expect(inbound.capture.status).toBe("target");
+      const unbraked = calculateRoute({
+        ...inbound.inputs,
+        captureFraction: 0,
+      });
+      expect(unbraked.capture.status).toBe("flyby");
+      expect(unbraked.capture.elements.energy).toBeGreaterThan(0);
+    },
+  );
+
+  it.each(PLANET_IDS.filter((id) => id !== "earth"))(
+    "Earth ↔ %s preserves edited body altitudes and resets independent reference timing",
+    (planet) => {
+      const input = {
+        ...defaultRouteInputs("earth", planet),
+        departureAltitude: 1200,
+        arrivalAltitude: BODIES[planet].defaultAltitude + 700,
+        phaseOffset: 35,
+        waitDays: 25,
+        captureFraction: 0.4,
+      };
+      const original = { ...input };
+      const reversed = reverseRouteInputs(input);
+      expect(reversed).toEqual({
+        origin: planet,
+        destination: "earth",
+        departureAltitude: input.arrivalAltitude,
+        arrivalAltitude: input.departureAltitude,
+        phaseOffset: 0,
+        waitDays: 0,
+        captureFraction: 1,
+      });
+      const reference = {
+        ...input,
+        phaseOffset: 0,
+        waitDays: 0,
+        captureFraction: 1,
+      };
+      expect(reverseRouteInputs(reversed)).toEqual(reference);
+      expect(input).toEqual(original);
+      const outbound = calculateRoute(reference);
+      const inbound = calculateRoute(reversed);
+      expect(inbound.flightTime).toBe(outbound.flightTime);
+      expect(inbound.departureParkingRadius).toBe(
+        outbound.arrivalParkingRadius,
+      );
+      expect(inbound.arrivalParkingRadius).toBe(
+        outbound.departureParkingRadius,
+      );
+      expect(inbound.departureDeltaV).toBe(outbound.arrivalDeltaV);
+      expect(inbound.arrivalDeltaV).toBe(outbound.departureDeltaV);
+      expect(inbound.totalDeltaV).toBe(outbound.totalDeltaV);
+      expect(inbound.encounter).toBe(true);
+      expect(outbound.encounter).toBe(true);
+    },
+  );
+
+  it("validates a reference before resetting its edited fields", () => {
+    const input = defaultRouteInputs("earth", "mars");
+    for (const patch of [
+      { origin: "pluto" as BodyId },
+      { destination: "earth" as BodyId },
+      { origin: "moon" as BodyId },
+      { departureAltitude: 149 },
+      { arrivalAltitude: NaN },
+      { waitDays: -1 },
+      { phaseOffset: 181 },
+      { captureFraction: 1.501 },
+    ]) {
+      expect(() => reverseRouteInputs({ ...input, ...patch })).toThrow(
+        RangeError,
+      );
+    }
+  });
+
+  it("keeps both lunar directions compatible with the lunar-only wrapper", () => {
+    for (const [origin, destination] of [
+      ["earth", "moon"],
+      ["moon", "earth"],
+    ] as const) {
+      const input = defaultRouteInputs(origin, destination);
+      expect(reverseRouteInputs(input)).toEqual(reverseLunarInputs(input));
+    }
+    const venusToMars = defaultRouteInputs("venus", "mars");
+    expect(reverseRouteInputs(reverseRouteInputs(venusToMars))).toEqual(
+      venusToMars,
+    );
   });
 });
 

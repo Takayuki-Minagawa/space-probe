@@ -58,7 +58,11 @@ Minimum altitudes and encounter tolerances are teaching choices, not source-back
 
 月の往路・復路の比較は、同じ地球・月の定数と高度条件を使い、地球中心の楕円と月中心の局所噴射を逆向きに適用した計算です。帰路用に別の天体定数や実ミッションの飛行時間を追加していません。対称な飛行時間・Δvはこのモデルから導く値で、一次資料の実ミッションの実績値ではありません。地球復路の到着には、束縛楕円の近点速度を使います。
 
-The lunar outbound/return comparison uses the same Earth/Moon constants and altitude conditions, reversing the geocentric ellipse and local lunar burn estimates. It adds no separate return constants or real-mission flight times. Equal times and Δv budgets follow from this model's symmetry, not measured mission results in the source material. Earth return arrival uses the bound ellipse's periapsis speed.
+The lunar outbound/return comparison uses the same Earth/Moon constants and altitude conditions, reversing the geocentric ellipse and local lunar burn estimates. It adds no separate return constants or real-mission flight times. Equal times and Δv budgets follow from this model's symmetry, not measured mission results in the source material. Lunar return arrival at Earth uses the bound ellipse's periapsis speed.
+
+地球と各惑星の往復比較にも同じ惑星定数を使います。対称な飛行時間・局所Δvと、方向ごとに異なる先行角は、上記ホーマン遷移の教材式から計算した結果です。惑星からの地球帰還には太陽中心の遷移から得た地球相対の超過速度を使い、地球円軌道への噴射を独立して概算します。実天体暦や実ミッションの日程・燃料消費を追加したものではありません。
+
+Earth–planet comparisons reuse the same planetary constants. Equal flight times and local Δv budgets, and direction-specific lead angles, are derived from the teaching equations for Hohmann transfers. Planetary return uses Earth-relative excess speed from the Sun-centered transfer in an independent Earth circularization estimate. No real ephemerides, operational itineraries, or measured fuel consumption are added.
 
 ## 実装・配信 / Implementation and deployment
 

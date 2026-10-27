@@ -1,8 +1,8 @@
 # 物理モデルと判定 / Physics model and evaluation
 
-惑星航路ラボは、8惑星間と地球・月の往復の理想化した遷移、および惑星近傍の独立した実験を使う軌道力学教材です。本書は太陽系航路モデル `circular-solar-lunar-1.1.0` と、5つの基礎実験のモデル `planar-two-body-1.0.0` の計算・表示・判定を説明します。定数の出典と参考資料は [SOURCES.md](SOURCES.md)、操作方法は [README](../README.md) にまとめています。
+惑星航路ラボは、8惑星間と地球・月の往復の理想化した遷移、および惑星近傍の独立した実験を使う軌道力学教材です。本書は太陽系航路モデル `circular-solar-lunar-1.2.0` と、5つの基礎実験のモデル `planar-two-body-1.0.0` の計算・表示・判定を説明します。定数の出典と参考資料は [SOURCES.md](SOURCES.md)、操作方法は [README](../README.md) にまとめています。
 
-Planetary Route Lab teaches orbital mechanics through idealized transfers among eight planets, both directions between Earth and the Moon, and independent local experiments. This document covers the route model `circular-solar-lunar-1.1.0` and the five guided experiments using `planar-two-body-1.0.0`. See [sources](SOURCES.md) and the [user guide](../README.md).
+Planetary Route Lab teaches orbital mechanics through idealized transfers among eight planets, both directions between Earth and the Moon, and independent local experiments. This document covers the route model `circular-solar-lunar-1.2.0` and the five guided experiments using `planar-two-body-1.0.0`. See [sources](SOURCES.md) and the [user guide](../README.md).
 
 **教育用の近似モデルです。実際の打上げ・探査機運用・航法には使用できません。 / Educational approximation; not for launch, spacecraft operations, or navigation.**
 
@@ -25,7 +25,7 @@ All experiments assume planar two-body gravity and instantaneous burns. Planets 
 
 遷移と各惑星・月の局所計算は、有限の作用圏境界で接続した一本の航路ではありません。惑星間と月往路の捕獲には位置が合う参考遷移の相対速度を使い、遷移で生じた位置のずれは修正しません。月復路の地球円軌道化は、地球中心の束縛楕円の近点速度から直接計算します。月の往復とも地球・月・探査機の三体問題は解いていません。スウィングバイの基礎実験は、選択した直行航路に経由惑星を挿入する機能ではありません。
 
-Transfer and local planetary/lunar burn calculations are not joined at finite spheres of influence. Planetary and outbound lunar capture use the aligned reference encounter's relative speed and cannot correct a transfer miss. Return circularization at Earth uses the geocentric bound ellipse's periapsis speed directly. Neither lunar direction solves the Earth–Moon–spacecraft three-body problem. The guided gravity-assist lab does not add a waypoint to the selected direct route.
+Transfer and local planetary/lunar burn calculations are not joined at finite spheres of influence. Planetary and outbound lunar capture use the aligned reference encounter's relative speed and cannot correct a transfer miss. Lunar return circularization at Earth uses the geocentric bound ellipse's periapsis speed directly. Neither lunar direction solves the Earth–Moon–spacecraft three-body problem. The guided gravity-assist lab does not add a waypoint to the selected direct route.
 
 ## 単位、座標、時間 / Units, frames, and time
 
@@ -98,6 +98,50 @@ $$
 合計は参考の2噴射 $\Delta v_1+\Delta v_2$ です。地表から待機軌道へ上がる噴射、損失、航路修正、予備は含みません。捕獲噴射の割合を変えた実験での噴射量は、参考の合計と区別して表示します。
 
 The reference total is the sum of these two burns. It excludes surface launch, parking-orbit insertion, losses, corrections, and margins. An experiment with a different capture fraction has an applied burn separate from that reference total.
+
+### 地球と各惑星の往復比較 / Earth–planet outbound and return comparison
+
+比較欄は、地球と水星・金星・火星・木星・土星・天王星・海王星の各組について、両方向で同じ天体ごとの周回高度を使います。位相のずれ・待ち時間は0、到着減速は円軌道化に必要な100%を参考条件とします。各方向の参考値を並べており、連続した往復ミッションの日程や現実の帰還可能日を求める機能ではありません。
+
+For Earth paired with any of the seven other planets, the comparison uses matching per-body parking altitudes, zero phase offset and wait, and full arrival circularization. Each direction has its own reference conditions; this is not a continuous round-trip itinerary or a calculation of real return dates.
+
+地球と相手惑星の太陽中心の公転半径を $r_E,r_P$、局所円軌道半径を $\rho_j=R_j+h_j$ とします。$j$ は地球または相手惑星です。往路と復路で半長軸と各端点の速度の大きさは変わらず、局所噴射量 $B_j$ の役割が入れ替わります。
+
+Let $r_E,r_P$ be the heliocentric orbital radii and $\rho_j=R_j+h_j$ the local circular radius at Earth or the other planet. The semimajor axis and endpoint speed magnitudes remain the same in both directions, while each local burn magnitude $B_j$ changes its departure/arrival role:
+
+$$
+\begin{aligned}
+a_T&=\frac{r_E+r_P}{2},\\
+t_{out}=t_{return}&=\pi\sqrt{\frac{a_T^3}{\mu_\odot}},\\
+v_{\infty,j}&=\left|\sqrt{\mu_\odot\left(\frac{2}{r_j}-\frac{1}{a_T}\right)}-\sqrt{\frac{\mu_\odot}{r_j}}\right|,\\
+B_j&=\sqrt{v_{\infty,j}^2+\frac{2\mu_j}{\rho_j}}-\sqrt{\frac{\mu_j}{\rho_j}},\\
+(\Delta v_{depart},\Delta v_{arrive})_{out}&=(B_E,B_P),\\
+(\Delta v_{depart},\Delta v_{arrive})_{return}&=(B_P,B_E),\\
+\Delta v_{total,out}=\Delta v_{total,return}&=B_E+B_P.
+\end{aligned}
+$$
+
+太陽中心での符号付き速度変化は、局所噴射量の大きさと別です。地球より内側へ向かう航路と外側へ向かう航路では、太陽中心の出発時に加速・減速の役割が変わります。周回高度を変えると $B_j$ は変わりますが、この惑星間モデルの $a_T,t_T$ は変わりません。
+
+Signed heliocentric velocity changes are distinct from local burn magnitudes. Inward and outward transfers require different signs of heliocentric departure change. Parking altitude changes $B_j$, but does not change $a_T$ or $t_T$ in this planetary model.
+
+参考の先行角は目的地の角速度を使うため、往路と復路で別に計算します。以下の角度を画面と同じ一周の範囲へ正規化します。
+
+Reference lead angles use the destination's angular rate and are therefore calculated separately, then normalized to the angular range used on screen:
+
+$$
+\phi_{out}=\pi-n_Pt_T,\qquad
+\phi_{return}=\pi-n_Et_T,\qquad
+n_j=\sqrt{\frac{\mu_\odot}{r_j^3}}.
+$$
+
+方向切替は地球側・相手惑星側の高度を保持し、位相のずれ・待ち時間を0、噴射割合を1へ戻します。飛行時間と合計Δvの一致は同じ円軌道モデルの対称性であり、現実の往復で燃料消費や待機を含む総日程が等しいことを意味しません。
+
+Switching direction preserves Earth-side and planet-side altitudes and resets phase offset and wait to zero and the burn fraction to one. Equal flight time and total Δv follow from the circular model's symmetry, not equal propellant consumption or total mission time including stays and waiting.
+
+惑星から地球への復路では、太陽中心の遷移から得た地球相対の超過速度を使って、地球円軌道への局所捕獲を概算します。月復路の束縛された地球中心楕円とは異なる計算です。地球到着も待ち合わせを必要とし、位相を変えて到着位置がずれた場合は捕獲計算が参考値となります。地表への帰還・再突入・大気減速は含みません。
+
+Planetary return estimates local capture into an Earth circle using Earth-relative excess speed from the Sun-centered transfer. This differs from the bound geocentric ellipse of lunar return. Earth arrival still requires a timed encounter; if phase changes produce a miss, capture remains a reference estimate. Surface return, re-entry, and atmospheric braking are excluded.
 
 ### 月への往路 / Outbound transfer to the Moon
 
@@ -333,6 +377,15 @@ The model combines DE440-based constants with planet-only GMs from JPL NAIF. Mar
 | 火星高度 300 km の円軌道投入 Δv / Circularization at 300 km |   2.09138 km/s |
 | 上記二噴射の合計 / Sum of the two modeled burns             |   5.70276 km/s |
 
+同じ地球200 km・火星300 kmの周回高度を使う往復比較です。先行角は各方向の出発位置から見た目的地の相対角で、0°以上360°未満に正規化しています。
+
+The outbound/return comparison uses matching Earth 200 km and Mars 300 km parking altitudes. Each lead angle describes the destination relative to that direction's departure ray, normalized to [0°, 360°).
+
+| 地球・火星の往復 / Earth–Mars direction | 飛行時間 / Flight time | 出発Δv / Departure Δv | 到着Δv / Arrival Δv | 合計Δv / Total Δv | 目的地先行角 / Target lead angle |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 地球→火星 / Earth → Mars | 258.8658 d | 3.61138 km/s | 2.09138 km/s | 5.70276 km/s | 44.3442° |
+| 火星→地球 / Mars → Earth | 258.8658 d | 2.09138 km/s | 3.61138 km/s | 5.70276 km/s | 284.8599° |
+
 地球待機高度200 km、月の目標高度100 km、位相のずれ・待ち時間0、捕獲噴射の割合1における月への参考値です。
 
 Lunar reference values use a 200 km Earth parking orbit, a 100 km lunar target circle, zero phase offset and waiting time, and capture fraction 1.
@@ -357,9 +410,9 @@ Return reference values reverse the same Earth 200 km and Moon 100 km endpoints.
 | 地球近点での円軌道化 / Circularization at Earth periapsis | 3.131345 km/s |
 | 上記二噴射の参考合計 / Reference sum of the two burns | 3.953055 km/s |
 
-地球到着に超過速度 $v_\infty$ は定義しません。入力で変える出発方向は、往路の月先行角と異なる量です。
+月復路の地球到着に超過速度 $v_\infty$ は定義しません。入力で変える出発方向は、往路の月先行角と異なる量です。
 
-Earth return arrival has no assigned excess speed $v_\infty$. Its departure-direction input is distinct from the outbound Moon lead angle.
+Lunar return arrival at Earth has no assigned excess speed $v_\infty$. Its departure-direction input is distinct from the outbound Moon lead angle.
 
 
 これらは固定した教育モデルの計算値で、特定の実ミッションの実績ではありません。表示前の未丸め値を後段の計算に使います。合計 Δv に地表打上げ、待機軌道投入、損失、途中の修正噴射、予備は含みません。

@@ -399,6 +399,14 @@ export const manual: Localized<Manual> = {
         body: "月を含む航路では、地球と月の同じ軌道高度を使い、往路・復路の飛行時間、出発・到着のΔv、合計と計算過程を並べて比較できます。往路・復路の表示ボタンは天体ごとの高度を引き継ぎ、位相・待ち時間を0、到着噴射を100%に戻します。地球200 km・月100 kmなら片道は約4.98日、地球側の噴射は約3.131 km/s、月側は約0.822 km/sです。この理想モデルでは飛行時間と合計が等しく、出発と到着の噴射量が入れ替わります。実際の帰還ミッションの所要時間や燃料が等しいという意味ではありません。",
       },
       {
+        title: "地球と各惑星の往復を比較する",
+        body: "地球と水星・金星・火星・木星・土星・天王星・海王星のいずれかを結ぶ航路では、同じ天体別の高度で往路と復路を比較できます。地球200 km・火星300 kmなら片道は約258.87日、地球側の噴射は約3.611 km/s、火星側は約2.091 km/sです。この円軌道モデルでは飛行時間と合計Δvが等しく、出発・到着の噴射量が入れ替わります。高度を変えると局所的な噴射量が変わり、太陽中心の遷移時間は変わりません。TeX式で両方向の計算をたどれます。",
+      },
+      {
+        title: "往復比較の条件と出発時期",
+        body: "往路・復路の表示ボタンは天体ごとの高度を保持し、位相のずれ・待ち時間を0、到着噴射を100%に戻します。比較表は常にこの参考条件を使い、変更した位相や噴射割合の結果とは区別します。必要な目的地の先行角は往路と復路で異なります。到着直後に出発できる往復旅行を計算する機能ではなく、現地滞在や帰りの出発機会を待つ日程は含みません。惑星からの帰路の到着目標も地球周回円軌道で、再突入・着陸は対象外です。Δvの等しさは燃料消費量の等しさを意味しません。",
+      },
+      {
         title: "まずは火星へ",
         body: "5つの基礎実験の「火星へ向かう」で参考設定を再生します。約259日後に宇宙機と火星が同じ場所へ来る様子を確認し、先行角を少し変えて再実行します。「参考設定へ戻す」で基準となる条件に戻せます。",
       },
@@ -460,6 +468,14 @@ export const manual: Localized<Manual> = {
       {
         title: "Compare lunar outbound and return",
         body: "For a lunar route, compare both directions at the same Earth and Moon orbit altitudes: flight time, departure and arrival burns, total Δv, and equations. The direction buttons retain the altitude associated with each body and reset phase and wait to zero and arrival braking to 100%. With Earth at 200 km and the Moon at 100 km, each leg takes about 4.98 days; the Earth burn is about 3.131 km/s and the Moon burn about 0.822 km/s. This ideal model gives equal times and totals with departure and arrival burns exchanged. Actual return missions need not have equal durations or fuel requirements.",
+      },
+      {
+        title: "Compare Earth and planetary return routes",
+        body: "For Earth and Mercury, Venus, Mars, Jupiter, Saturn, Uranus, or Neptune, compare outbound and return routes at matching body-specific orbit altitudes. With Earth at 200 km and Mars at 300 km, each leg takes about 258.87 days; the Earth burn is about 3.611 km/s and the Mars burn about 2.091 km/s. This circular-orbit model gives equal flight times and total Δv, with departure and arrival burns exchanged. Changing altitude affects local burns without changing the Sun-centered transfer time. Follow both calculations in TeX equations.",
+      },
+      {
+        title: "Comparison conditions and departure timing",
+        body: "Show outbound and Show return preserve each body's altitude and reset phase offset and wait to zero and arrival braking to 100%. The comparison always uses those reference conditions, separately from your changed phase or braking fraction. The required target lead angle differs between outbound and return. These are independent legs, not a round-trip itinerary with immediate departure on arrival: surface stays and waiting for a return opportunity are excluded. Planetary return also targets an Earth circular parking orbit, excluding re-entry and landing. Equal Δv does not mean equal propellant consumption.",
       },
       {
         title: "Start with Mars",

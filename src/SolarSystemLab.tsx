@@ -9,7 +9,7 @@ import {
   BODY_IDS,
   calculateRoute,
   defaultRouteInputs,
-  reverseLunarInputs,
+  reverseRouteInputs,
   routeAt,
   sampleRoute,
 } from "./solarSystem";
@@ -65,16 +65,20 @@ export default function SolarSystemLab({
   const destination = BODIES[inputs.destination];
   const lunar = inputs.destination === "moon" || inputs.origin === "moon";
   const lunarReturn = inputs.origin === "moon";
-  const lunarPair = useMemo(() => {
-    if (!result || !result.lunarDirection) return null;
+  const earthPair = useMemo(() => {
+    if (
+      !result ||
+      (inputs.origin !== "earth" && inputs.destination !== "earth")
+    )
+      return null;
     const currentReference = calculateRoute({
       ...inputs,
       phaseOffset: 0,
       waitDays: 0,
       captureFraction: 1,
     });
-    const reversed = calculateRoute(reverseLunarInputs(inputs));
-    return result.lunarDirection === "return"
+    const reversed = calculateRoute(reverseRouteInputs(inputs));
+    return inputs.destination === "earth"
       ? { outbound: reversed, inbound: currentReference }
       : { outbound: currentReference, inbound: reversed };
   }, [inputs, result]);
@@ -637,10 +641,18 @@ export default function SolarSystemLab({
 
       {route && (
         <>
-          {lunarPair && (
+          {lunar && earthPair && (
             <LunarComparison
-              outbound={lunarPair.outbound}
-              inbound={lunarPair.inbound}
+              outbound={earthPair.outbound}
+              inbound={earthPair.inbound}
+              lang={lang}
+              onSelect={(next) => applyInputs({ ...next.inputs })}
+            />
+          )}
+          {!lunar && earthPair && (
+            <PlanetaryComparison
+              outbound={earthPair.outbound}
+              inbound={earthPair.inbound}
               lang={lang}
               onSelect={(next) => applyInputs({ ...next.inputs })}
             />
@@ -1014,6 +1026,254 @@ export default function SolarSystemLab({
           </a>
         </p>
       </details>
+    </section>
+  );
+}
+
+function PlanetaryComparison({
+  outbound,
+  inbound,
+  lang,
+  onSelect,
+}: {
+  outbound: RouteResult;
+  inbound: RouteResult;
+  lang: Lang;
+  onSelect: (route: RouteResult) => void;
+}) {
+  const tr = (ja: string, en: string) => (lang === "ja" ? ja : en);
+  const f = (value: number, digits = 3) =>
+    value.toLocaleString(lang === "ja" ? "ja-JP" : "en-US", {
+      maximumFractionDigits: digits,
+    });
+  const tn = (value: number, digits = 3) =>
+    f(value, digits).replaceAll(",", String.raw`{,}`);
+  const planet = outbound.destination;
+  const metrics = [
+    {
+      key: "time",
+      label: tr("飛行時間", "Flight time"),
+      out: outbound.flightTime / K.DAY,
+      back: inbound.flightTime / K.DAY,
+      unit: tr("日", "days"),
+      digits: 2,
+    },
+    {
+      key: "departure",
+      label: tr("出発の噴射 Δv", "Departure burn Δv"),
+      out: outbound.departureDeltaV,
+      back: inbound.departureDeltaV,
+      unit: "km/s",
+      digits: 3,
+    },
+    {
+      key: "arrival",
+      label: tr("到着円軌道化 Δv", "Arrival circularization Δv"),
+      out: outbound.arrivalDeltaV,
+      back: inbound.arrivalDeltaV,
+      unit: "km/s",
+      digits: 3,
+    },
+    {
+      key: "total",
+      label: tr("2噴射の合計 Δv", "Two-burn total Δv"),
+      out: outbound.totalDeltaV,
+      back: inbound.totalDeltaV,
+      unit: "km/s",
+      digits: 3,
+    },
+  ];
+  return (
+    <section
+      className="planetary-comparison"
+      data-testid="planetary-comparison"
+      aria-labelledby="planetary-comparison-title"
+    >
+      <div className="solar-section-heading">
+        <div>
+          <span className="section-kicker">
+            {tr(
+              "同じ高度で、行きと帰りを比較",
+              "SAME ALTITUDES, TWO DIRECTIONS",
+            )}
+          </span>
+          <h3 id="planetary-comparison-title">
+            {tr(
+              `地球と${planet.name.ja}の往路・復路を比べる`,
+              `Compare Earth–${planet.name.en} outbound and return routes`,
+            )}
+          </h3>
+        </div>
+      </div>
+      <p className="solar-budget-note">
+        {tr(
+          `地球の円軌道高度 ${f(outbound.inputs.departureAltitude, 0)} km、${planet.name.ja}の円軌道高度 ${f(outbound.inputs.arrivalAltitude, 0)} kmを両方向で共有します。比較は方向ごとの参考位相を使い、位相のずれ・待ち時間を0、到着減速を100%にした条件です。`,
+          `Both directions use an Earth circular altitude of ${f(outbound.inputs.departureAltitude, 0)} km and a ${planet.name.en} circular altitude of ${f(outbound.inputs.arrivalAltitude, 0)} km. Each uses its own reference phase, zero phase offset and wait, and 100% arrival circularization.`,
+        )}
+      </p>
+      <div
+        className="solar-table-scroll planetary-table"
+        tabIndex={0}
+        role="region"
+        aria-label={tr(
+          "惑星の往路・復路比較表",
+          "Planetary outbound and return comparison table",
+        )}
+      >
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">{tr("比べる量", "Quantity")}</th>
+              <th scope="col">
+                {tr(
+                  `往路：地球 → ${planet.name.ja}`,
+                  `Outbound: Earth → ${planet.name.en}`,
+                )}
+              </th>
+              <th scope="col">
+                {tr(
+                  `復路：${planet.name.ja} → 地球`,
+                  `Return: ${planet.name.en} → Earth`,
+                )}
+              </th>
+              <th scope="col">
+                {tr("差（復路 − 往路）", "Difference (return − outbound)")}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {metrics.map((metric) => {
+              const delta = metric.back - metric.out;
+              const roundedDelta =
+                Math.abs(delta) < 0.5 * 10 ** -metric.digits ? 0 : delta;
+              return (
+                <tr key={metric.key}>
+                  <th scope="row">{metric.label}</th>
+                  <td data-testid={`planetary-outbound-${metric.key}`}>
+                    {f(metric.out, metric.digits)} {metric.unit}
+                  </td>
+                  <td data-testid={`planetary-return-${metric.key}`}>
+                    {f(metric.back, metric.digits)} {metric.unit}
+                  </td>
+                  <td data-testid={`planetary-difference-${metric.key}`}>
+                    {roundedDelta > 0 ? "+" : ""}
+                    {f(roundedDelta, metric.digits)} {metric.unit}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="planetary-shared-equation">
+        <div>
+          <h4>
+            {tr(
+              "共通の遷移楕円と飛行時間",
+              "Shared transfer ellipse and flight time",
+            )}
+          </h4>
+          <p>
+            {tr(
+              "地球と相手惑星の公転半径を交換しても、半長軸と飛行時間は同じです。円軌道の高度は局所的な噴射量を変えますが、この太陽中心の遷移時間は変えません。",
+              "Swapping the two planets' orbital radii leaves the semimajor axis and flight time unchanged. Parking altitudes change local burns, but not this Sun-centered transfer time.",
+            )}
+          </p>
+          <p>
+            {tr(
+              "rEは地球、rPは相手惑星の太陽中心の公転半径です。各方向の式では1が出発天体、2が到着天体を表します。",
+              "rE and rP are the heliocentric orbital radii of Earth and the other planet. In each direction below, 1 is the departure body and 2 is the arrival body.",
+            )}
+          </p>
+        </div>
+        <MathFormula
+          tex={String.raw`\begin{aligned}r_{\mathrm E}&=${tn(outbound.departureRadius, 1)}\,\mathrm{km}\\r_{\mathrm P}&=${tn(outbound.targetRadius, 1)}\,\mathrm{km}\\a_{\mathrm T}&=\frac{r_{\mathrm E}+r_{\mathrm P}}{2}\\&=${tn(outbound.semiMajor, 1)}\,\mathrm{km}\\t_{\mathrm{out}}=t_{\mathrm{return}}&=\pi\sqrt{\frac{a_{\mathrm T}^3}{\mu_{\odot}}}\\&=${tn(outbound.flightTime / K.DAY)}\,\mathrm d\\v_{\mathrm T}(r)&=\sqrt{\mu_{\odot}\left(\frac{2}{r}-\frac{1}{a_{\mathrm T}}\right)}\\v_{\mathrm c}(r)&=\sqrt{\frac{\mu_{\odot}}{r}}\end{aligned}`}
+        />
+      </div>
+      <div className="planetary-shared-equation">
+        <div>
+          <h4>
+            {tr(
+              "天体ごとの重力から、噴射量へ",
+              "From local gravity to burn magnitude",
+            )}
+          </h4>
+          <p>
+            {tr(
+              "Bは待機円軌道からの脱出、または到着円軌道への減速に必要な速度変化です。超過速度v∞、天体の重力定数μ、天体中心から円軌道までの半径ρを代入します。太陽中心の速度差そのものが、局所的な噴射量ではありません。",
+              "B gives the burn to escape a parking circle or brake into an arrival circle. Substitute excess speed v∞, the body's gravitational parameter μ, and body-centered circular radius ρ. The heliocentric speed difference itself is not the local burn.",
+            )}
+          </p>
+        </div>
+        <MathFormula
+          tex={String.raw`\begin{aligned}\rho&=R+h\\B(v_{\infty},\mu,\rho)&=\sqrt{v_{\infty}^{2}+\frac{2\mu}{\rho}}\\&\quad-\sqrt{\frac{\mu}{\rho}}\end{aligned}`}
+        />
+      </div>
+      <div className="planetary-direction-cards">
+        {[
+          { key: "outbound", route: outbound },
+          { key: "return", route: inbound },
+        ].map(({ key, route: item }) => (
+          <article key={key} data-testid={`planetary-${key}-calculation`}>
+            <h4>
+              {key === "outbound"
+                ? tr(
+                    `往路：地球 → ${planet.name.ja}`,
+                    `Outbound: Earth → ${planet.name.en}`,
+                  )
+                : tr(
+                    `復路：${planet.name.ja} → 地球`,
+                    `Return: ${planet.name.en} → Earth`,
+                  )}
+            </h4>
+            <p>
+              {tr(
+                "① 太陽中心の速度から、天体との相対速度へ",
+                "1. From heliocentric to body-relative speed",
+              )}
+            </p>
+            <MathFormula
+              tex={String.raw`\begin{aligned}v_{\infty,1}&\approx |v_{\mathrm T}(r_1)-v_{\mathrm c}(r_1)|\\&\approx |${tn(item.transferDepartureSpeed)}-${tn(item.departureCircularSpeed)}|\\&=${tn(item.departureExcess!)}\,\mathrm{km/s}\\v_{\infty,2}&\approx |v_{\mathrm T}(r_2)-v_{\mathrm c}(r_2)|\\&\approx |${tn(item.transferArrivalSpeed)}-${tn(item.targetCircularSpeed)}|\\&=${tn(item.arrivalExcess!)}\,\mathrm{km/s}\end{aligned}`}
+            />
+            <p>
+              {tr(
+                `② ${item.origin.name.ja}で出発、${item.destination.name.ja}で円軌道へ減速`,
+                `2. Depart ${item.origin.name.en}; brake into a circle at ${item.destination.name.en}`,
+              )}
+            </p>
+            <MathFormula
+              tex={String.raw`\begin{aligned}\rho_1&=${tn(item.departureParkingRadius)}\,\mathrm{km}\\\rho_2&=${tn(item.arrivalParkingRadius)}\,\mathrm{km}\\\Delta v_{\mathrm{depart}}&=B(v_{\infty,1},\mu_1,\rho_1)\\&\approx B(${tn(item.departureExcess!)},${tn(item.origin.mu)},${tn(item.departureParkingRadius)})\\&=${tn(item.departureDeltaV)}\,\mathrm{km/s}\\\Delta v_{\mathrm{arrive}}&=B(v_{\infty,2},\mu_2,\rho_2)\\&\approx B(${tn(item.arrivalExcess!)},${tn(item.destination.mu)},${tn(item.arrivalParkingRadius)})\\&=${tn(item.arrivalDeltaV)}\,\mathrm{km/s}\\\Delta v_{\mathrm{total}}&=\Delta v_{\mathrm{depart}}+\Delta v_{\mathrm{arrive}}\\&\approx ${tn(item.totalDeltaV)}\,\mathrm{km/s}\end{aligned}`}
+            />
+            <p>
+              {tr(
+                "③ この方向で待ち合わせる参考位相",
+                "3. Reference phase for this direction",
+              )}
+            </p>
+            <MathFormula
+              tex={String.raw`\begin{aligned}n_2&=\sqrt{\frac{\mu_{\odot}}{r_2^3}}\\\phi_{\mathrm{ref}}&=(\pi-n_2t_{\mathrm T})\bmod 2\pi\\&\equiv ${tn(deg(item.phaseAngle))}^{\circ}\end{aligned}`}
+            />
+            <button type="button" onClick={() => onSelect(item)}>
+              {key === "outbound"
+                ? tr("往路を表示", "Show outbound")
+                : tr("復路を表示", "Show return")}
+              <Icon name="arrow" size={16} />
+            </button>
+          </article>
+        ))}
+      </div>
+      <p className="solar-budget-note">
+        {tr(
+          "式の数値はkm・s系で、μはkm³/s²です。表示値を丸める前の精度で計算しています。方向切替では天体ごとの高度を保持し、位相のずれ・待ち時間を0、到着減速を100%に戻します。",
+          "Substitutions use km and seconds, with μ in km³/s². Calculations retain precision before display rounding. Switching direction preserves each body's altitude and resets phase offset and wait to zero and arrival braking to 100%.",
+        )}
+      </p>
+      <p className="planetary-comparison-note">
+        {tr(
+          "飛行時間と合計Δvが同じなのは、同じ円軌道・高度条件を逆向きに使う近似モデルの対称性です。往復それぞれで待ち合わせを合わせた比較であり、往路の到着直後に帰路へ出発できる日程ではありません。実際の燃料や総日程が等しいことも意味しません。復路の目標は地球の円軌道で、地表打上げ・着陸・再突入・大気減速・軌道面変更は含みません。",
+          "Equal flight times and total Δv follow from reversing the same circular-orbit and altitude conditions. Each direction has its own aligned departure; this is not a schedule for returning immediately after outbound arrival, nor does it imply equal real fuel use or total schedules. The return target is an Earth circular orbit. Surface launch, landing, re-entry, atmospheric braking, and plane changes are excluded.",
+        )}
+      </p>
     </section>
   );
 }
