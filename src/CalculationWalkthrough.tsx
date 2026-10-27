@@ -3,6 +3,7 @@ import type { LabId, Lang } from "./learning";
 import { K, capture, deg, norm, normalizeAngle } from "./physics";
 import { H } from "./simulation";
 import type { Parameters, Simulation } from "./simulation";
+import MathFormula from "./MathFormula";
 import "./CalculationWalkthrough.css";
 
 export interface CalculationWalkthroughProps {
@@ -17,6 +18,7 @@ export interface CalculationWalkthroughProps {
 interface CalculationStep {
   title: string;
   input: string;
+  inputTex?: string;
   equation: string;
   result: string;
   comparison: string;
@@ -36,6 +38,8 @@ export default function CalculationWalkthrough({
     new Intl.NumberFormat(lang === "ja" ? "ja-JP" : "en-US", {
       maximumFractionDigits: digits,
     }).format(Math.abs(value) < 0.5 * 10 ** -digits ? 0 : value);
+  const texNumber = (value: number, digits = 3) =>
+    f(value, digits).replaceAll(",", String.raw`{,}`);
   const difference = (
     value: number,
     baseline: number,
@@ -54,7 +58,6 @@ export default function CalculationWalkthrough({
   ) =>
     `${tr("参考との差", "Change from reference")} ${difference(value, baseline, unit, digits)}`;
   const day = tr("日", "days");
-  const dayUnit = tr("日", "day");
   const sim = simulation && !simulation.blocked ? simulation : null;
   const steps: CalculationStep[] = [];
   let note = "";
@@ -99,8 +102,22 @@ export default function CalculationWalkthrough({
       steps.push(
         {
           title: tr("軌道から飛行時間を求める", "Find the flight time"),
-          input: `r_E = ${f(K.orbitEarth / K.AU)} AU · r_M = ${f(K.orbitMars / K.AU, 6)} AU`,
-          equation: `a_T = (${f(K.orbitEarth / K.AU)} + ${f(K.orbitMars / K.AU, 6)}) / 2 AU\n    = ${f(H.semiMajor, 1)} km\nμ_Sun = ${f(K.muSun, 1)} km³/s²\nt_T = π√(a_T³ / μ_Sun)\n    = ${f(H.flightTime, 0)} s ÷ 86,400 s/${dayUnit}`,
+          input: tr(
+            "地球と火星の円軌道半径",
+            "Earth and Mars circular orbit radii",
+          ),
+          inputTex: String.raw`\begin{aligned}
+r_{\mathrm E}&=${texNumber(K.orbitEarth / K.AU)}\,\mathrm{AU}\\
+r_{\mathrm M}&=${texNumber(K.orbitMars / K.AU, 6)}\,\mathrm{AU}\\
+\mu_{\mathrm{Sun}}&=${texNumber(K.muSun / 1e11, 7)}\times10^{11}\,\mathrm{km^3/s^2}
+\end{aligned}`,
+          equation: String.raw`\begin{aligned}
+a_{\mathrm T}&=\frac{r_{\mathrm E}+r_{\mathrm M}}{2}\\
+&=\frac{${texNumber(K.orbitEarth / K.AU)}+${texNumber(K.orbitMars / K.AU, 6)}}{2}\,\mathrm{AU}\\
+&=${texNumber(H.semiMajor, 1)}\,\mathrm{km}\\[3pt]
+t_{\mathrm T}&=\pi\sqrt{\frac{a_{\mathrm T}^{3}}{\mu_{\mathrm{Sun}}}}\\
+&=\frac{${texNumber(H.flightTime, 0)}}{86{,}400}\,\mathrm d
+\end{aligned}`,
           result: `${f(H.flightTime / K.DAY, 2)} ${day}`,
           comparison: compared(
             H.flightTime / K.DAY,
@@ -114,15 +131,38 @@ export default function CalculationWalkthrough({
             "出発時の位置関係を求める",
             "Advance both planets to departure",
           ),
-          input: `${tr("基準時刻の先行角", "Initial lead")} ${f(p.phase)}° · ${tr("待ち時間", "Wait")} ${f(p.wait, 1)} ${day}`,
-          equation: `φ_depart = ${f(p.phase)}° + (${f(deg(H.nMars - H.nEarth) * K.DAY, 5)}°/${dayUnit}) × ${f(p.wait, 1)} ${day}`,
+          input: tr(
+            "基準時刻の先行角と出発待ち時間",
+            "Initial lead and departure wait",
+          ),
+          inputTex: String.raw`\begin{aligned}
+\phi_0&=${texNumber(p.phase)}^\circ\\
+t_{\mathrm w}&=${texNumber(p.wait, 1)}\,\mathrm d
+\end{aligned}`,
+          equation: String.raw`\begin{aligned}
+\Delta\phi&=(n_{\mathrm M}-n_{\mathrm E})t_{\mathrm w}\\
+&=\frac{${texNumber(deg(H.nMars - H.nEarth) * K.DAY, 5)}^\circ}{\mathrm d}\\
+&\qquad\times ${texNumber(p.wait, 1)}\,\mathrm d\\[3pt]
+\phi_{\mathrm{depart}}&=(${texNumber(p.phase)}^\circ+\Delta\phi)\\
+&\qquad\bmod\;360^\circ
+\end{aligned}`,
           result: `${f(phase)}°`,
           comparison: `${tr("参考との差", "Change from reference")} ${difference(phaseDelta, 0, "°")} · ${tr("参考", "Reference")} ${f(referencePhase)}°`,
         },
         {
           title: tr("到着時の位置を比べる", "Compare positions at arrival"),
-          input: `Δx = ${f(dx, 1)} km · Δy = ${f(dy, 1)} km`,
-          equation: "d = |r_spacecraft − r_Mars|\n  = √(Δx² + Δy²)",
+          input: tr(
+            "同じ到着時刻での位置の差",
+            "Position differences at the same arrival time",
+          ),
+          inputTex: String.raw`\begin{aligned}
+\Delta x&=${texNumber(dx, 1)}\,\mathrm{km}\\
+\Delta y&=${texNumber(dy, 1)}\,\mathrm{km}
+\end{aligned}`,
+          equation: String.raw`\begin{aligned}
+d&=\left\lVert\mathbf r_{\mathrm{probe}}-\mathbf r_{\mathrm{Mars}}\right\rVert\\
+&=\sqrt{(\Delta x)^2+(\Delta y)^2}
+\end{aligned}`,
           result: `${f(sim.arrival.missDistance, 0)} km`,
           comparison: compared(
             sim.arrival.missDistance,
@@ -158,8 +198,12 @@ export default function CalculationWalkthrough({
       steps.push(
         {
           title: tr("高度を中心距離へ変える", "Convert altitude to radius"),
-          input: `h = ${f(p.altitude, 0)} km`,
-          equation: `r = R_Earth + h\n  = ${f(K.rEarth)} + ${f(p.altitude, 0)}`,
+          input: tr("地表からの高度", "Altitude above the surface"),
+          inputTex: String.raw`h=${texNumber(p.altitude, 0)}\,\mathrm{km}`,
+          equation: String.raw`\begin{aligned}
+r&=R_{\mathrm{Earth}}+h\\
+&=(${texNumber(K.rEarth)}+${texNumber(p.altitude, 0)})\,\mathrm{km}
+\end{aligned}`,
           result: `${f(current.radius)} km`,
           comparison: compared(current.radius, base.radius, "km"),
         },
@@ -168,8 +212,17 @@ export default function CalculationWalkthrough({
             "噴射前後の速さを求める",
             "Find speeds before and after the burn",
           ),
-          input: `v∞ = ${f(p.vinf)} km/s`,
-          equation: `v_c = √(${f(K.muEarth)} / ${f(current.radius)}) = ${f(current.circularSpeed)}\nv_p = √(${f(p.vinf)}² + 2μ_Earth / r) = ${f(current.periapsisSpeed)} km/s`,
+          input: tr(
+            "遠方で残る地球相対速度",
+            "Residual Earth-relative speed far away",
+          ),
+          inputTex: String.raw`v_\infty=${texNumber(p.vinf)}\,\mathrm{km/s}`,
+          equation: String.raw`\begin{aligned}
+v_{\mathrm c}&=\sqrt{\frac{\mu_{\mathrm{Earth}}}{r}}\\
+&=\sqrt{\frac{${texNumber(K.muEarth)}}{${texNumber(current.radius)}}}\,\mathrm{km/s}\\[3pt]
+v_{\mathrm p}&=\sqrt{v_\infty^2+\frac{2\mu_{\mathrm{Earth}}}{r}}\\
+&=\sqrt{${texNumber(p.vinf)}^2+${texNumber(current.escapeSpeed)}^2}\,\mathrm{km/s}
+\end{aligned}`,
           result: `${f(current.circularSpeed)} → ${f(current.periapsisSpeed)} km/s`,
           comparison: `${tr("噴射後の速さの参考差", "Post-burn speed change from reference")} ${difference(current.periapsisSpeed, base.periapsisSpeed, "km/s")}`,
         },
@@ -179,7 +232,10 @@ export default function CalculationWalkthrough({
             "噴射後の速さ − 円軌道の速さ",
             "Post-burn speed minus circular speed",
           ),
-          equation: `Δv = ${f(current.periapsisSpeed)} − ${f(current.circularSpeed)}`,
+          equation: String.raw`\begin{aligned}
+\Delta v&=v_{\mathrm p}-v_{\mathrm c}\\
+&=(${texNumber(current.periapsisSpeed)}-${texNumber(current.circularSpeed)})\,\mathrm{km/s}
+\end{aligned}`,
           result: `${f(current.deltaV)} km/s`,
           comparison: compared(current.deltaV, base.deltaV, "km/s"),
         },
@@ -235,15 +291,36 @@ export default function CalculationWalkthrough({
             "火星近くでの速さを求める",
             "Find the arrival speed near Mars",
           ),
-          input: `r_p = ${f(K.rMars)} + ${f(p.altitude, 0)} = ${f(radius)} km`,
-          equation: `v_p = √(${f(H.vInfinityArrive)}² + 2μ_Mars / ${f(radius)})`,
+          input: tr(
+            "火星中心から近火点までの距離",
+            "Mars-centered periapsis radius",
+          ),
+          inputTex: String.raw`\begin{aligned}
+r_{\mathrm p}&=(${texNumber(K.rMars)}+${texNumber(p.altitude, 0)})\,\mathrm{km}\\
+&=${texNumber(radius)}\,\mathrm{km}
+\end{aligned}`,
+          equation: String.raw`\begin{aligned}
+v_{\mathrm p}&=\sqrt{v_\infty^2+\frac{2\mu_{\mathrm{Mars}}}{r_{\mathrm p}}}\\
+&=\sqrt{${texNumber(H.vInfinityArrive)}^2+\frac{2\mu_{\mathrm{Mars}}}{${texNumber(radius)}}}\,\mathrm{km/s}
+\end{aligned}`,
           result: `${f(current.beforeBurn)} km/s`,
           comparison: compared(current.beforeBurn, base.beforeBurn, "km/s"),
         },
         {
           title: tr("噴射で接線速度を変える", "Apply the tangential burn"),
-          input: `Δv = ${f(p.burn)} km/s · ${tr("脱出速度", "Escape speed")} ${f(escapeSpeed)} km/s`,
-          equation: `v_after = ${f(current.beforeBurn)} − ${f(p.burn)}\n|v_after| ${Math.abs(current.postBurnSpeed) < escapeSpeed ? "<" : "≥"} v_esc`,
+          input: tr(
+            "減速量と、その地点での脱出速度",
+            "Braking burn and local escape speed",
+          ),
+          inputTex: String.raw`\begin{aligned}
+\Delta v&=${texNumber(p.burn)}\,\mathrm{km/s}\\
+v_{\mathrm{esc}}&=${texNumber(escapeSpeed)}\,\mathrm{km/s}
+\end{aligned}`,
+          equation: String.raw`\begin{aligned}
+v_{\mathrm{after}}&=v_{\mathrm p}-\Delta v\\
+&=(${texNumber(current.beforeBurn)}-${texNumber(p.burn)})\,\mathrm{km/s}\\
+\lvert v_{\mathrm{after}}\rvert&${Math.abs(current.postBurnSpeed) < escapeSpeed ? "<" : String.raw`\ge`}v_{\mathrm{esc}}
+\end{aligned}`,
           result: `${f(current.postBurnSpeed)} km/s`,
           comparison: compared(
             current.postBurnSpeed,
@@ -253,8 +330,20 @@ export default function CalculationWalkthrough({
         },
         {
           title: tr("新しい軌道を判定する", "Check the resulting orbit"),
-          input: `ε = ${f(current.elements.energy)} km²/s²`,
-          equation: `${tr("近点高度", "Periapsis altitude")} = ${f(periapsis, 1)} km\n${tr("遠点高度", "Apoapsis altitude")} = ${apoapsis === null ? tr("なし（非束縛）", "none (unbound)") : `${f(apoapsis, 1)} km`}`,
+          input: tr(
+            apoapsis === null
+              ? "近点高度（下添字p）を確認。遠点はありません（非束縛）。"
+              : "近点高度（下添字p）と遠点高度（下添字a）を確認します。",
+            apoapsis === null
+              ? "Check periapsis altitude (p). Apoapsis: none (unbound)."
+              : "Check periapsis (p) and apoapsis (a) altitudes.",
+          ),
+          inputTex: String.raw`\varepsilon=${texNumber(current.elements.energy)}\,\mathrm{km^2/s^2}`,
+          equation: String.raw`\begin{aligned}
+h_{\mathrm p}&=r_{\mathrm p}-R_{\mathrm{Mars}}\\
+&=${texNumber(periapsis, 1)}\,\mathrm{km}
+${apoapsis === null ? "" : String.raw`\\[3pt]h_{\mathrm a}&=r_{\mathrm a}-R_{\mathrm{Mars}}\\&=${texNumber(apoapsis, 1)}\,\mathrm{km}`}
+\end{aligned}`,
           result: statuses[current.status],
           comparison: `${tr("近点高度の参考差", "Periapsis altitude change from reference")} ${difference(periapsis, base.elements.periapsisRadius - K.rMars, "km", 1)}`,
         },
@@ -295,15 +384,34 @@ export default function CalculationWalkthrough({
             "円軌道の速度へ噴射を加える",
             "Add a burn to circular velocity",
           ),
-          input: `r = ${f(K.rEarth)} + ${f(p.altitude, 0)} = ${f(radius)} km`,
-          equation: `v_c = √(μ_Earth / r) = ${f(circularSpeed)} km/s\nv_after = ${f(circularSpeed)} + (${f(p.burn)})`,
+          input: tr("地球中心からの距離", "Distance from Earth’s center"),
+          inputTex: String.raw`\begin{aligned}
+r&=(${texNumber(K.rEarth)}+${texNumber(p.altitude, 0)})\,\mathrm{km}\\
+&=${texNumber(radius)}\,\mathrm{km}
+\end{aligned}`,
+          equation: String.raw`\begin{aligned}
+v_{\mathrm c}&=\sqrt{\frac{\mu_{\mathrm{Earth}}}{r}}\\
+&=${texNumber(circularSpeed)}\,\mathrm{km/s}\\[3pt]
+v_{\mathrm{after}}&=v_{\mathrm c}+\Delta v\\
+&=\bigl(${texNumber(circularSpeed)}+(${texNumber(p.burn)})\bigr)\,\mathrm{km/s}
+\end{aligned}`,
           result: `${f(speed)} km/s`,
           comparison: compared(speed, norm(reference.initial.v), "km/s"),
         },
         {
           title: tr("軌道エネルギーを求める", "Find the orbital energy"),
-          input: `v = ${f(speed)} km/s · r = ${f(radius)} km`,
-          equation: `ε = ${f(speed)}² / 2 − ${f(K.muEarth)} / ${f(radius)}`,
+          input: tr(
+            "噴射後の速さと中心距離",
+            "Post-burn speed and central distance",
+          ),
+          inputTex: String.raw`\begin{aligned}
+v&=${texNumber(speed)}\,\mathrm{km/s}\\
+r&=${texNumber(radius)}\,\mathrm{km}
+\end{aligned}`,
+          equation: String.raw`\begin{aligned}
+\varepsilon&=\frac{v^2}{2}-\frac{\mu_{\mathrm{Earth}}}{r}\\
+&=\left(\frac{${texNumber(speed)}^2}{2}-\frac{${texNumber(K.muEarth)}}{${texNumber(radius)}}\right)\,\mathrm{km^2/s^2}
+\end{aligned}`,
           result: `${f(sim.orbit.energy)} km²/s²`,
           comparison: compared(
             sim.orbit.energy,
@@ -313,8 +421,20 @@ export default function CalculationWalkthrough({
         },
         {
           title: tr("近点と遠点を比べる", "Compare periapsis and apoapsis"),
-          input: `e = ${f(sim.orbit.eccentricity, 5)}`,
-          equation: `${tr("近点高度", "Periapsis altitude")} = ${f(periapsis, 1)} km\n${tr("遠点高度", "Apoapsis altitude")} = ${apoapsis === null ? tr("なし（非束縛）", "none (unbound)") : `${f(apoapsis, 1)} km`}`,
+          input: tr(
+            apoapsis === null
+              ? "近点高度（下添字p）を確認。遠点はありません（非束縛）。"
+              : "近点高度（下添字p）と遠点高度（下添字a）を比較します。",
+            apoapsis === null
+              ? "Check periapsis altitude (p). Apoapsis: none (unbound)."
+              : "Compare periapsis (p) and apoapsis (a) altitudes.",
+          ),
+          inputTex: String.raw`e=${texNumber(sim.orbit.eccentricity, 5)}`,
+          equation: String.raw`\begin{aligned}
+h_{\mathrm p}&=r_{\mathrm p}-R_{\mathrm{Earth}}\\
+&=${texNumber(periapsis, 1)}\,\mathrm{km}
+${apoapsis === null ? "" : String.raw`\\[3pt]h_{\mathrm a}&=r_{\mathrm a}-R_{\mathrm{Earth}}\\&=${texNumber(apoapsis, 1)}\,\mathrm{km}`}
+\end{aligned}`,
           result:
             sim.impact !== null
               ? tr(
@@ -354,8 +474,8 @@ export default function CalculationWalkthrough({
       "Far from Earth, incoming and outgoing relative speeds match but their directions differ. Adding Earth’s orbital velocity can raise or lower the Sun-relative speed.",
     );
     details = tr(
-      "eは双曲線の離心率、δは入出の漸近速度ベクトルの旋回角です。近点での速さはv∞より大きくなります。太陽中心の図は遠方の速度ベクトルの足し算を示し、惑星間航路の続きを計算しているものではありません。太陽中心の速さの差は、燃料を消費した噴射Δvへ加算しません。",
-      "e is hyperbolic eccentricity and δ is the turn between asymptotic velocity vectors. Periapsis speed exceeds v∞. The Sun-frame diagram adds far-field velocity vectors; it does not continue an interplanetary path. The Sun-relative speed change is not propulsive Δv.",
+      "eは双曲線の離心率、δは入出の漸近速度ベクトルの旋回角です。回転行列Rで速度ベクトルの向きだけを変えます。近点での速さはv∞より大きくなります。太陽中心の図は遠方の速度ベクトルの足し算を示し、惑星間航路の続きを計算しているものではありません。太陽中心の速さの差は、燃料を消費した噴射Δvへ加算しません。",
+      "e is hyperbolic eccentricity and δ is the turn between asymptotic velocity vectors. Rotation matrix R changes only the vector’s direction. Periapsis speed exceeds v∞. The Sun-frame diagram adds far-field velocity vectors; it does not continue an interplanetary path. The Sun-relative speed change is not propulsive Δv.",
     );
     if (sim) {
       const current = sim.flybyResult;
@@ -367,8 +487,18 @@ export default function CalculationWalkthrough({
             "接近条件から双曲線を求める",
             "Find the encounter hyperbola",
           ),
-          input: `r_p = ${f(radius)} km · v∞ = ${f(p.vinf)} km/s`,
-          equation: `e = 1 + ${f(radius)} × ${f(p.vinf)}² / ${f(K.muEarth)}`,
+          input: tr(
+            "近点距離と接近速度",
+            "Periapsis radius and incoming speed",
+          ),
+          inputTex: String.raw`\begin{aligned}
+r_{\mathrm p}&=${texNumber(radius)}\,\mathrm{km}\\
+v_\infty&=${texNumber(p.vinf)}\,\mathrm{km/s}
+\end{aligned}`,
+          equation: String.raw`\begin{aligned}
+e&=1+\frac{r_{\mathrm p}v_\infty^2}{\mu_{\mathrm{Earth}}}\\
+&=1+\frac{${texNumber(radius)}\times ${texNumber(p.vinf)}^2}{${texNumber(K.muEarth)}}
+\end{aligned}`,
           result: `e = ${f(current.eccentricity, 5)}`,
           comparison: compared(
             current.eccentricity,
@@ -383,7 +513,11 @@ export default function CalculationWalkthrough({
             "通過側が速度を回す向きを決めます。",
             "Passing side selects the rotation direction.",
           ),
-          equation: `δ = 2 asin(1 / ${f(current.eccentricity, 5)})\nv∞_out = Rotate(${p.side === 1 ? "+" : "−"}δ) v∞_in`,
+          equation: String.raw`\begin{aligned}
+\delta&=2\arcsin\!\left(\frac{1}{e}\right)\\
+&=2\arcsin\!\left(\frac{1}{${texNumber(current.eccentricity, 5)}}\right)\\[3pt]
+\mathbf v_{\infty,\mathrm{out}}&=\mathbf R(${p.side === 1 ? "+" : "-"}\delta)\,\mathbf v_{\infty,\mathrm{in}}
+\end{aligned}`,
           result: `${f(deg(current.turnAngle), 2)}°`,
           comparison: compared(
             deg(current.turnAngle),
@@ -394,8 +528,19 @@ export default function CalculationWalkthrough({
         },
         {
           title: tr("太陽から見た速さを比べる", "Compare Sun-relative speeds"),
-          input: `v_Sun = v_Earth + v∞ · |v_Earth| = ${f(norm(current.planetVelocity))} km/s`,
-          equation: `|v_Sun,out| − |v_Sun,in|\n= ${f(norm(current.sunOutgoing))} − ${f(norm(current.sunIncoming))}`,
+          input: tr(
+            "地球の公転速度をベクトルで加えます。",
+            "Add Earth’s orbital velocity as a vector.",
+          ),
+          inputTex: String.raw`\begin{aligned}
+\mathbf v_{\mathrm{Sun}}&=\mathbf v_{\mathrm{Earth}}+\mathbf v_\infty\\
+\lVert\mathbf v_{\mathrm{Earth}}\rVert&=${texNumber(norm(current.planetVelocity))}\,\mathrm{km/s}
+\end{aligned}`,
+          equation: String.raw`\begin{aligned}
+\Delta\lVert\mathbf v_{\mathrm{Sun}}\rVert&=\lVert\mathbf v_{\mathrm{Sun,out}}\rVert\\
+&\quad-\lVert\mathbf v_{\mathrm{Sun,in}}\rVert\\
+&=(${texNumber(norm(current.sunOutgoing))}-${texNumber(norm(current.sunIncoming))})\,\mathrm{km/s}
+\end{aligned}`,
           result: `${difference(current.speedChange, 0, "km/s")}`,
           comparison: compared(current.speedChange, base.speedChange, "km/s"),
         },
@@ -433,7 +578,17 @@ export default function CalculationWalkthrough({
                   <h3>{step.title}</h3>
                 </div>
                 <p className="calculation-input">{step.input}</p>
-                <pre className="calculation-equation">{step.equation}</pre>
+                {step.inputTex && (
+                  <MathFormula
+                    tex={step.inputTex}
+                    className="calculation-input"
+                    display={false}
+                  />
+                )}
+                <MathFormula
+                  tex={step.equation}
+                  className="calculation-equation"
+                />
                 <p className="calculation-result">{step.result}</p>
                 <p className="calculation-comparison">{step.comparison}</p>
               </li>

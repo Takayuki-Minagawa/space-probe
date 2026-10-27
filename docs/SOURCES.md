@@ -41,6 +41,7 @@ Mars-only GM differs from Mars-system GM, which includes its moons. Fixed radii 
 - [Vite production build](https://vite.dev/guide/build.html) — 静的アセット生成と相対base。 / Static assets and relative base.
 - [Vite static deployment](https://vite.dev/guide/static-deploy.html) — GitHub Pagesへの配信。 / Deployment to GitHub Pages.
 - [GitHub Pages custom workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages) — artifact、環境、公開権限。 / Artifacts, environments, and deployment permissions.
+- [KaTeX API](https://katex.org/docs/api.html) — TeX数式をHTMLとMathMLで表示。CSSと数式用フォントはサイトに同梱。 / TeX rendering with HTML and MathML; CSS and math fonts are bundled locally.
 
 公式Actionsのバージョンと固定SHAは [CI](../.github/workflows/ci.yml) と [Pages](../.github/workflows/pages.yml) に記載しています。
 
@@ -55,6 +56,7 @@ Direct versions are in [package.json](../package.json), and transitive versions 
 | 依存 / Dependency               | License    |
 | ------------------------------- | ---------- |
 | React / React DOM               | MIT        |
+| KaTeX                           | MIT        |
 | @types/react / @types/react-dom | MIT        |
 | Vite / @vitejs/plugin-react     | MIT        |
 | TypeScript                      | Apache-2.0 |
@@ -62,6 +64,6 @@ Direct versions are in [package.json](../package.json), and transitive versions 
 | ESLint / typescript-eslint      | MIT        |
 | @playwright/test                | Apache-2.0 |
 
-ReactとReact DOMが実行時の依存です。残りは開発・検証用です。本リポジトリにはプロジェクト全体の `LICENSE` ファイルを設けていません。この一覧は依存ライブラリのライセンスを示します。
+React、React DOM、KaTeXが実行時の依存です。残りは開発・検証用です。[KaTeXのライセンス本文](../public/katex-LICENSE.txt) は配信成果物にも含めています。本リポジトリにはプロジェクト全体の `LICENSE` ファイルを設けていません。この一覧は依存ライブラリのライセンスを示します。
 
-React and React DOM are runtime dependencies; the remaining packages are development/test tools. This repository has no project-wide `LICENSE` file. The table describes dependency licenses.
+React, React DOM, and KaTeX are runtime dependencies; the remaining packages are development/test tools. The [KaTeX license](../public/katex-LICENSE.txt) is also included in the published site. This repository has no project-wide `LICENSE` file. The table describes dependency licenses.

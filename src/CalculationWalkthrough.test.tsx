@@ -35,6 +35,8 @@ describe("calculation walkthrough", () => {
           lang === "ja" ? "計算の流れと比較" : "Follow the calculation",
         );
         expect(html).not.toMatch(/NaN|Infinity|undefined/);
+        expect(html).not.toContain("katex-error");
+        expect(html).toContain("katex-mathml");
         expect(html.match(/class="calculation-step"/g)).toHaveLength(3);
       }
     },

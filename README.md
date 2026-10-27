@@ -38,6 +38,10 @@ Japanese and English, light and dark themes, and a bilingual quick guide are ava
 
 Each lab provides numeric inputs, sliders, playback, stepping, timeline navigation, and a reference overlay. **Follow the calculation** connects inputs to results, with example settings and comparisons to the reference.
 
+数式はTeXで組版し、分数・平方根・添字・ベクトルを表示します。数式用フォントもサイトに同梱しています。
+
+Equations are typeset from TeX, with fractions, roots, subscripts, and vectors. Math fonts are bundled with the site.
+
 ![火星先行角を10度変えた計算例 / Calculation after a 10-degree Mars phase shift](docs/screenshots/calculation-ja.jpg)
 
 Tabで操作項目を移動し、ボタンはEnter／Space、スライダーは矢印キーで操作できます。自動再生はありません。言語と配色は同じブラウザーに保存されます。実験条件と課題の進捗は再読み込みでリセットされます。

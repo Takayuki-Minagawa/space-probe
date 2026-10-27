@@ -77,8 +77,12 @@ export const LABS: Lesson[] = [
       ja: "宇宙機は噴射の後も重力で曲がり続けます。進行方向への噴射で軌道エネルギーが増え、逆向きの噴射で減ります。十分な速さになると閉じた楕円を離れ、脱出軌道になります。",
       en: "Gravity keeps bending the trajectory after a burn. A prograde burn adds orbital energy; a retrograde burn removes it. With enough speed, the closed ellipse becomes an escape trajectory.",
     },
-    formula:
-      "v_c = √(μ/r)\nv_esc = √(2μ/r)\nε = |v|²/2 − μ/r\nv² = μ(2/r − 1/a)",
+    formula: String.raw`\begin{aligned}
+v_{\mathrm{c}} &= \sqrt{\frac{\mu}{r}} \\
+v_{\mathrm{esc}} &= \sqrt{\frac{2\mu}{r}} \\
+\varepsilon &= \frac{\lVert\mathbf v\rVert^2}{2} - \frac{\mu}{r} \\
+v^2 &= \mu\left(\frac{2}{r} - \frac{1}{a}\right)
+\end{aligned}`,
     assumptions: {
       ja: "地球中心の二体問題。噴射は初期位置で一度だけ、接線方向へ瞬時に適用します。空気抵抗・地球の扁平率・月の重力は含みません。",
       en: "An Earth-centered two-body model with one instantaneous tangential burn at the initial position. Atmospheric drag, Earth’s oblateness, and lunar gravity are omitted.",
@@ -141,8 +145,13 @@ export const LABS: Lesson[] = [
       ja: "脱出速度は、遠方で速さが0に近づく境界です。火星へ向かう参考設定では、さらに地球相対のv∞ ≈ 2.94469 km/sを残します。高度200 kmの円軌道からの脱出噴射は約3.61138 km/sです。",
       en: "Escape speed is the boundary that leaves zero speed at infinity. The reference Mars transfer requires an additional Earth-relative v∞ of about 2.94469 km/s. From a 200 km circular orbit, the burn is about 3.61138 km/s.",
     },
-    formula:
-      "r = R_Earth + h\nv_c = √(μ_Earth/r)\nv_p = √(v∞² + 2μ_Earth/r)\nΔv = v_p − v_c\nC3 = v∞²",
+    formula: String.raw`\begin{aligned}
+r &= R_{\mathrm{Earth}} + h \\
+v_{\mathrm{c}} &= \sqrt{\frac{\mu_{\mathrm{Earth}}}{r}} \\
+v_{\mathrm{p}} &= \sqrt{v_\infty^2 + \frac{2\mu_{\mathrm{Earth}}}{r}} \\
+\Delta v &= v_{\mathrm{p}} - v_{\mathrm{c}} \\
+C_3 &= v_\infty^2
+\end{aligned}`,
     assumptions: {
       ja: "独立した地球中心の局所実験。参考v∞は理想ホーマン遷移の値です。地表からの打上げ・待機軌道への投入は計算外で、惑星間航路に連続接続した解ではありません。",
       en: "An independent Earth-centered local experiment. Reference v∞ comes from the ideal Hohmann transfer. Launch and parking-orbit insertion are excluded; this is not a continuously connected interplanetary trajectory.",
@@ -205,8 +214,15 @@ export const LABS: Lesson[] = [
       ja: "ホーマン遷移では、地球の公転軌道と火星の公転軌道に接する楕円の半周を飛びます。飛行時間は約258.8658日。到着時に火星が待ち合わせ地点へ来るよう、出発時の先行角を選びます。",
       en: "A Hohmann transfer follows half an ellipse tangent to the circular orbits of Earth and Mars. The flight takes about 258.8658 days. The departure lead angle makes Mars reach the rendezvous point at arrival.",
     },
-    formula:
-      "a_T = (r_Earth + r_Mars)/2\nt_T = π√(a_T³/μ_Sun)\nn_Mars = √(μ_Sun/r_Mars³)\nφ = π − n_Mars t_T\nd(t_T) = |r_spacecraft(t_T) − r_Mars(t_T)|",
+    formula: String.raw`\begin{aligned}
+a_{\mathrm{T}} &= \frac{r_{\mathrm{Earth}} + r_{\mathrm{Mars}}}{2} \\
+t_{\mathrm{T}} &= \pi\sqrt{\frac{a_{\mathrm{T}}^3}{\mu_{\mathrm{Sun}}}} \\
+n_{\mathrm{Mars}} &= \sqrt{\frac{\mu_{\mathrm{Sun}}}{r_{\mathrm{Mars}}^3}} \\
+\varphi &= \pi - n_{\mathrm{Mars}}t_{\mathrm{T}} \\
+\Delta\mathbf r &= \mathbf r_{\mathrm{spacecraft}}(t_{\mathrm{T}}) \\
+&\quad - \mathbf r_{\mathrm{Mars}}(t_{\mathrm{T}}) \\
+d(t_{\mathrm{T}}) &= \lVert\Delta\mathbf r\rVert
+\end{aligned}`,
     assumptions: {
       ja: "太陽中心・同一平面・惑星の円軌道。10,000 kmは教材の遭遇許容誤差で、捕獲条件ではありません。中心位置の一致は理想化であり、火星中心へ突入する実航路でも実暦の打上げ窓でもありません。",
       en: "Sun-centered, coplanar motion with circular planetary orbits. The 10,000 km encounter tolerance is a teaching criterion, not capture. Coincident centers are an idealization, not a real route into Mars or a calendar launch window.",
@@ -269,8 +285,14 @@ export const LABS: Lesson[] = [
       ja: "捕獲では、火星に対する軌道エネルギーを噴射で減らします。遭遇、束縛軌道への捕獲、安全な目標軌道の達成は別の判定です。参考では、全軌道が高度100 km以上で、近点・遠点の中心距離が目標円軌道半径の1%以内なら目標達成です。",
       en: "Capture removes Mars-relative orbital energy with a burn. Encounter, bound capture, and a safe target orbit are separate checks. The target requires altitude of at least 100 km everywhere and periapsis and apoapsis radii within 1% of the target circular radius.",
     },
-    formula:
-      "r_p = R_Mars + h_p\nv_p = √(v∞² + 2μ_Mars/r_p)\nv_c = √(μ_Mars/r_p)\nΔv_circular = v_p − v_c\nε_after = |v_after|²/2 − μ_Mars/r_p",
+    formula: String.raw`\begin{aligned}
+r_{\mathrm{p}} &= R_{\mathrm{Mars}} + h_{\mathrm{p}} \\
+v_{\mathrm{p}} &= \sqrt{v_\infty^2 + \frac{2\mu_{\mathrm{Mars}}}{r_{\mathrm{p}}}} \\
+v_{\mathrm{c}} &= \sqrt{\frac{\mu_{\mathrm{Mars}}}{r_{\mathrm{p}}}} \\
+\Delta v_{\mathrm{circular}} &= v_{\mathrm{p}} - v_{\mathrm{c}} \\
+\varepsilon_{\mathrm{after}} &= \frac{\lVert\mathbf v_{\mathrm{after}}\rVert^2}{2} \\
+&\quad - \frac{\mu_{\mathrm{Mars}}}{r_{\mathrm{p}}}
+\end{aligned}`,
     assumptions: {
       ja: "独立した火星中心の局所実験。参考ホーマン遷移の到着v∞を使い、指定近火点で接線方向に瞬時減速します。ここで捕獲できても、惑星間遷移の位置のずれは修正されません。安全高度100 kmは教材上の制約です。",
       en: "An independent Mars-centered experiment using reference Hohmann arrival v∞ and instantaneous tangential braking at the selected periapsis. Local capture does not correct an interplanetary miss. The 100 km safety altitude is a teaching constraint.",
@@ -333,8 +355,14 @@ export const LABS: Lesson[] = [
       ja: "スウィングバイは、動いている惑星との運動エネルギー交換です。エネルギーを無から作るわけではありません。太陽中心での速さの変化は、噴射で消費したΔvには加算しません。曲がれる角度には、接近条件による上限があります。",
       en: "A gravity assist exchanges kinetic energy with a moving planet; it does not create energy from nothing. The change in Sun-relative speed is not propulsive Δv. The encounter conditions limit how far the trajectory can turn.",
     },
-    formula:
-      "r_p = R_Planet + h_p\ne = 1 + r_p v∞²/μ_Planet\nδ = 2 asin(1/e)\nv∞_out = Rotate(±δ) v∞_in\nv_Sun = v_Planet + v∞",
+    formula: String.raw`\begin{aligned}
+r_{\mathrm{p}} &= R_{\mathrm{Planet}} + h_{\mathrm{p}} \\
+e &= 1 + \frac{r_{\mathrm{p}}v_\infty^2}{\mu_{\mathrm{Planet}}} \\
+\delta &= 2\arcsin\left(\frac{1}{e}\right) \\
+\mathbf v_{\infty,\mathrm{out}} &= \operatorname{Rotate}(\pm\delta) \\
+&\quad \mathbf v_{\infty,\mathrm{in}} \\
+\mathbf v_{\mathrm{Sun}} &= \mathbf v_{\mathrm{Planet}} + \mathbf v_\infty
+\end{aligned}`,
     assumptions: {
       ja: "地球を使う独立した無推力の双曲線遭遇実験。太陽中心図は遠方の速度ベクトルの合成を表します。地表以下は衝突、高度150 km未満は教材の範囲外。火星直行航路に経由地点を追加する機能ではありません。",
       en: "An independent, unpowered hyperbolic Earth encounter. The Sun-frame diagram adds far-field velocity vectors. Surface intersections are collisions; altitudes below 150 km are outside this model. This does not insert a waypoint into the direct Mars transfer.",

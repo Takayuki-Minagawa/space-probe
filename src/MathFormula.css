@@ -1,0 +1,44 @@
+.math-formula {
+  max-width: 100%;
+  min-width: 0;
+  color: var(--ink);
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+}
+
+.math-formula-display {
+  padding: 8px 2px;
+  font-size: 14px;
+}
+
+.math-formula-inline {
+  display: inline-block;
+  vertical-align: middle;
+  padding: 3px 0;
+}
+
+.math-formula .katex {
+  font-size: 1.08em;
+}
+
+.math-formula .katex-display {
+  margin: 0.3em 0;
+  text-align: left;
+}
+
+.math-formula .katex-display > .katex {
+  text-align: left;
+}
+
+.math-formula:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.details-formula {
+  margin-top: 12px;
+  padding: 14px;
+  background: var(--plot);
+  border-radius: 5px;
+}

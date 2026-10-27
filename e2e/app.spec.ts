@@ -375,6 +375,55 @@ test("favicon and production assets load from the application directory", async 
   }
 });
 
+test("TeX equations render in every lab with local fonts and accessible MathML", async ({
+  page,
+  request,
+}) => {
+  for (const lab of [
+    "01 軌道の基本",
+    "02 地球から出発",
+    "03 火星へ向かう",
+    "04 火星で止まる",
+    "05 スウィングバイ",
+  ]) {
+    await openLab(page, lab);
+    await expect(
+      page.locator(".calculation-equation .katex-mathml"),
+    ).toHaveCount(3);
+    await page
+      .getByText("詳細：式・単位・モデルの仮定", { exact: true })
+      .click();
+    await expect(page.locator(".details-formula .katex")).toBeVisible();
+    await expect(page.locator(".details-formula math")).toHaveCount(1);
+    await expect(page.locator(".katex-error")).toHaveCount(0);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+      ),
+    ).toBe(true);
+    await page
+      .getByText("詳細：式・単位・モデルの仮定", { exact: true })
+      .click();
+  }
+  await page.getByRole("button", { name: "English", exact: true }).click();
+  await page.getByRole("button", { name: "Light mode", exact: true }).click();
+  await expect(page.locator(".calculation-equation .katex-mathml")).toHaveCount(
+    3,
+  );
+  await expect(page.locator(".katex-error")).toHaveCount(0);
+  await page.evaluate(() => document.fonts.ready);
+  const fontUrls = await page.evaluate(() =>
+    performance
+      .getEntriesByType("resource")
+      .map((entry) => entry.name)
+      .filter((url) => /KaTeX_.*\.(woff2?|ttf)/.test(url)),
+  );
+  expect(fontUrls.length).toBeGreaterThan(0);
+  for (const fontUrl of fontUrls)
+    expect(new URL(fontUrl).origin).toBe(new URL(page.url()).origin);
+  expect((await request.get(fontUrls[0])).ok()).toBe(true);
+});
+
 test("the exact escape boundary is unbound and never a successful elliptical-orbit task", async ({
   page,
 }) => {

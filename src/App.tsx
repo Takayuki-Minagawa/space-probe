@@ -8,6 +8,7 @@ import OrbitDiagram, { SpeedChart } from "./OrbitDiagram";
 import type { Layers } from "./OrbitDiagram";
 import { Icon, ParameterInput } from "./components";
 import CalculationWalkthrough from "./CalculationWalkthrough";
+import MathFormula from "./MathFormula";
 
 function saved(key: string, fallback: string) {
   try {
@@ -1246,7 +1247,7 @@ export default function App() {
                   "Details: formula, units & assumptions",
                 )}
               </summary>
-              <pre>{lesson.formula}</pre>
+              <MathFormula tex={lesson.formula} className="details-formula" />
               <p>{lesson.assumptions[lang]}</p>
               <p>
                 {tr(
