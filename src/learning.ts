@@ -383,8 +383,20 @@ export const manual: Localized<Manual> = {
       "予想して、条件を一つ変えて、結果を比べる。数式が分からなくても、軌道の形と動きから学べます。",
     sections: [
       {
+        title: "太陽系の航路を選ぶ",
+        body: "最初の画面「太陽系の航路」で、出発する惑星と目的地を選びます。水星・金星・地球・火星・木星・土星・天王星・海王星の異なる2惑星を結ぶ航路と、地球から月への航路を計算できます。月を選ぶと出発地は地球になります。同じ天体への移動と、月からの出発は対象外です。",
+      },
+      {
+        title: "行き先と噴射条件を比較する",
+        body: "まず地球→火星、地球→月、地球→木星を比べ、飛行時間と必要な噴射量を確認しましょう。出発高度・到着高度で噴射量が変わり、位相角のずれ・待ち時間で待ち合わせ位置が変わります。到着減速の割合を変えると、飛び去る・束縛される・目標円軌道に入るという違いを調べられます。計算過程の数式には現在の値が代入されます。",
+      },
+      {
+        title: "月と惑星の計算の違い",
+        body: "惑星間は太陽中心のホーマン遷移です。月へは地球中心の楕円で、待機円軌道から月の軌道半径まで進みます。この月行き噴射は地球からの脱出ではありません。到着側の減速は局所モデルによる近似値です。位置が合わない場合には、参考の到着速度や捕獲結果を、その航路で実現した到着と解釈しないでください。",
+      },
+      {
         title: "まずは火星へ",
-        body: "「火星へ向かう」で参考設定を再生します。約259日後に宇宙機と火星が同じ場所へ来る様子を確認し、先行角を少し変えて再実行します。いつでも「参考設定へ戻す」で検証済みの条件に戻せます。",
+        body: "5つの基礎実験の「火星へ向かう」で参考設定を再生します。約259日後に宇宙機と火星が同じ場所へ来る様子を確認し、先行角を少し変えて再実行します。「参考設定へ戻す」で基準となる条件に戻せます。",
       },
       {
         title: "時間を動かす",
@@ -400,7 +412,7 @@ export const manual: Localized<Manual> = {
       },
       {
         title: "計算の流れと比較",
-        body: "各章の計算欄で、入力値・式への代入・結果・参考設定との差を順に確認できます。試す例を選ぶと条件と参考軌道の表示が切り替わります。火星への遷移では到着時点を表示します。先行角や待ち時間で遭遇位置は変わりますが、このホーマン遷移の飛行時間は変わりません。月への飛行は現在の計算対象に含まれません。",
+        body: "各章の計算欄で、入力値・式への代入・結果・参考設定との差を順に確認できます。基礎実験の試す例を選ぶと条件と参考軌道の表示が切り替わります。火星への遷移では到着時点を表示します。位相角や待ち時間で遭遇位置は変わりますが、選んだホーマン遷移の飛行時間は変わりません。月行きでは出発高度により遷移楕円の大きさも変わります。",
       },
       {
         title: "何をもって成功とする？",
@@ -416,7 +428,7 @@ export const manual: Localized<Manual> = {
       },
       {
         title: "計算の範囲",
-        body: "2次元・同一平面・円軌道の惑星・二体重力・瞬時噴射を仮定します。局所実験は有限の作用圏境界で接続した一本の航路ではありません。大気、地表打上げ、軌道面変更、多天体の重力、実暦の精密な打上げ窓は扱いません。安全高度は実運用の基準ではありません。",
+        body: "2次元・同一平面・円軌道・二体重力・瞬時噴射を仮定します。局所実験は有限の作用圏境界で接続した一本の航路ではありません。大気、地表打上げ、軌道面変更、多天体の重力、実暦の精密な打上げ窓は扱いません。巨大惑星の高度は基準半径から測り、固体の地表を意味しません。大気・環・放射線環境を考慮しないため、教材の高度条件は実運用の安全基準ではありません。",
       },
       {
         title: "この教材について",
@@ -430,8 +442,20 @@ export const manual: Localized<Manual> = {
       "Predict, change one setting, and compare. You can learn from orbital shapes and motion before learning the equations.",
     sections: [
       {
+        title: "Choose a solar system route",
+        body: "Start in Solar system routes and choose a departure planet and destination. Any two distinct planets among Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, and Neptune are supported, plus Earth to the Moon. Choosing the Moon sets the origin to Earth. Same-body routes and departures from the Moon are outside this model.",
+      },
+      {
+        title: "Compare destinations and burns",
+        body: "Try Earth to Mars, the Moon, and Jupiter; compare flight times and burn budgets. Departure and arrival altitudes change required burns, while phase offset and departure wait change encounter geometry. Change the capture-burn fraction to explore a flyby, bound capture, or the target circular orbit. The calculation steps substitute your current values into the equations.",
+      },
+      {
+        title: "Why the lunar calculation differs",
+        body: "Planetary routes follow a Sun-centered Hohmann transfer. The lunar route uses an Earth-centered ellipse from a parking circle to the Moon's orbital radius. This injection does not escape Earth. Arrival braking is an independent local approximation. When positions do not align, reference arrival speeds and capture results do not represent an arrival achieved by that trajectory.",
+      },
+      {
         title: "Start with Mars",
-        body: "Play the reference in Journey to Mars. Watch the spacecraft and Mars meet after about 259 days. Change the lead angle slightly and try again. Restore reference returns to the verified settings at any time.",
+        body: "Choose Journey to Mars from the five foundation experiments and play the reference. Watch the spacecraft and Mars meet after about 259 days. Change the lead angle slightly and try again. Restore reference returns to the baseline settings.",
       },
       {
         title: "Control time",
@@ -447,7 +471,7 @@ export const manual: Localized<Manual> = {
       },
       {
         title: "Follow the calculation",
-        body: "Each lab shows inputs, numerical substitution, results, and differences from the reference. Choose an example to apply its settings and show the reference overlay. Transfer examples jump to arrival. Phase and waiting time change the encounter geometry, not this Hohmann transfer’s flight duration. Lunar flights are not included in the current model.",
+        body: "Each lab shows inputs, numerical substitution, results, and differences from the reference. Foundation examples apply settings and show the reference overlay; transfer examples jump to arrival. Phase and waiting time change encounter geometry without changing the selected Hohmann transfer’s duration. Lunar departure altitude also changes the transfer ellipse and its duration.",
       },
       {
         title: "What counts as success?",
@@ -463,7 +487,7 @@ export const manual: Localized<Manual> = {
       },
       {
         title: "Model limits",
-        body: "The model assumes two dimensions, one plane, circular planetary orbits, two-body gravity, and instantaneous burns. Local labs are not joined into one trajectory at finite spheres of influence. Atmospheres, surface launch, plane changes, multiple-body gravity, and precise calendar launch windows are omitted. Safety altitudes are not operational limits.",
+        body: "The model assumes two dimensions, one plane, circular orbits, two-body gravity, and instantaneous burns. Local labs are not joined into one trajectory at finite spheres of influence. Atmospheres, surface launch, plane changes, multiple-body gravity, and precise calendar launch windows are omitted. Giant-planet altitudes are above a reference radius, not a solid surface. The model omits atmosphere, rings, and radiation, so its altitude thresholds are not operational safety limits.",
       },
       {
         title: "About this lesson",

@@ -18,6 +18,7 @@ test.beforeEach(async ({ page }) => {
   });
   await page.goto("/");
   await expect(page).toHaveTitle(/惑星航路ラボ/);
+  await page.getByRole("button", { name: "03 火星へ向かう", exact: true }).click();
 });
 
 test.afterEach(async ({ page }) => {

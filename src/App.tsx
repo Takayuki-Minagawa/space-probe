@@ -9,6 +9,7 @@ import type { Layers } from "./OrbitDiagram";
 import { Icon, ParameterInput } from "./components";
 import CalculationWalkthrough from "./CalculationWalkthrough";
 import MathFormula from "./MathFormula";
+import SolarSystemLab from "./SolarSystemLab";
 
 function saved(key: string, fallback: string) {
   try {
@@ -30,6 +31,9 @@ export default function App() {
     saved("prl-theme", "dark") === "light" ? "light" : "dark",
   );
   const [lab, setLab] = useState<LabId>("transfer");
+  const [view, setView] = useState<"routes" | "lessons">(() =>
+    window.location.hash === "#calculation-walkthrough" ? "lessons" : "routes",
+  );
   const [settings, setSettings] = useState(allDefaults);
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -138,6 +142,7 @@ export default function App() {
     else modalRef.current?.close();
   }, [manualOpen]);
   const changeLab = (id: LabId) => {
+    setView("lessons");
     setLab(id);
     setTime(id === "flyby" ? -7200 : 0);
     setPlaying(false);
@@ -502,7 +507,7 @@ export default function App() {
         <div className="section-kicker">
           <span className="status-dot" />
           INTERACTIVE ORBITAL MECHANICS{" "}
-          <span className="version">LEARNING EDITION / 01</span>
+          <span className="version">SOLAR SYSTEM EDITION / 02</span>
         </div>
         <section className="intro">
           <div>
@@ -514,13 +519,13 @@ export default function App() {
             </h1>
             <p>
               {tr(
-                "地球から火星へ。出発時期と噴射量を変え、軌道・到着位置・必要なΔvを比べよう。",
-                "From Earth to Mars. Change departure timing and burns; compare the orbit, arrival position, and required Δv.",
+                "月も、8つの惑星も。行き先と条件を変え、軌道・飛行時間・必要なΔvを比べよう。",
+                "Explore the Moon and all eight planets. Change destinations and conditions to compare orbits, flight times, and required Δv.",
               )}
             </p>
           </div>
           <div className="progress-label">
-            <span>{tr("学習の進み具合", "YOUR PROGRESS")}</span>
+            <span>{tr("基礎実験の進み具合", "FOUNDATIONS PROGRESS")}</span>
             <strong>
               {String(completed.length).padStart(2, "0")}
               <small> / 05</small>
@@ -530,6 +535,18 @@ export default function App() {
             </div>
           </div>
         </section>
+        <button
+          className={`route-mode-button${view === "routes" ? " active" : ""}`}
+          aria-pressed={view === "routes"}
+          onClick={() => {
+            setView("routes");
+            setPlaying(false);
+          }}
+        >
+          <Icon name="globe" />
+          <span>{tr("太陽系の航路", "Solar system routes")}</span>
+          <small>{tr("8惑星 ＋ 月", "8 planets + the Moon")}</small>
+        </button>
         <nav
           className="chapter-nav"
           aria-label={tr("学習の章", "Learning chapters")}
@@ -537,9 +554,15 @@ export default function App() {
           {LABS.map((l) => (
             <button
               key={l.id}
-              className={lab === l.id ? "chapter active" : "chapter"}
+              className={
+                view === "lessons" && lab === l.id
+                  ? "chapter active"
+                  : "chapter"
+              }
               aria-label={`${l.number} ${l.title[lang]}`}
-              aria-current={lab === l.id ? "step" : undefined}
+              aria-current={
+                view === "lessons" && lab === l.id ? "step" : undefined
+              }
               onClick={() => changeLab(l.id)}
             >
               <span className="chapter-number">
@@ -550,740 +573,765 @@ export default function App() {
                 )}
               </span>
               <span>{l.title[lang]}</span>
-              {lab === l.id && <span className="chapter-dot" />}
+              {view === "lessons" && lab === l.id && (
+                <span className="chapter-dot" />
+              )}
             </button>
           ))}
         </nav>
-        <section className="workspace-heading">
-          <div>
-            <span className="eyebrow">EXPERIMENT {lesson.number}</span>
-            <h2>{lesson.subtitle[lang]}</h2>
-          </div>
-          <span className="model-badge">
-            {tr("円軌道・二体近似", "Circular / two-body model")}
-          </span>
-        </section>
-        {isMission && (
-          <section
-            className="first-experiment"
-            aria-label={tr("はじめての実験", "First experiment")}
-          >
-            <div>
-              <strong>
-                {tr(
-                  "まずは、到着する瞬間を比べよう。",
-                  "Start by comparing the moment of arrival.",
-                )}
-              </strong>
-              <p>
-                {tr(
-                  "参考設定 → 先行角を10°変更 → 火星とのずれを確認。約259日の飛行時間は同じです。",
-                  "Reference → shift the lead angle by 10° → inspect the miss. The flight still takes about 259 days.",
-                )}
-              </p>
-            </div>
-            <div className="first-experiment-actions">
-              <button onClick={() => applyExample(defaults("transfer"))}>
-                {tr("参考設定の到着を見る", "See reference arrival")}
-              </button>
-              <button
-                onClick={() =>
-                  applyExample({
-                    ...defaults("transfer"),
-                    phase: deg(H.phaseAngle) + 10,
-                  })
-                }
+        {view === "routes" ? (
+          <SolarSystemLab lang={lang} reduceMotion={reduceMotion} />
+        ) : (
+          <>
+            <section className="workspace-heading">
+              <div>
+                <span className="eyebrow">EXPERIMENT {lesson.number}</span>
+                <h2>{lesson.subtitle[lang]}</h2>
+              </div>
+              <span className="model-badge">
+                {tr("円軌道・二体近似", "Circular / two-body model")}
+              </span>
+            </section>
+            {isMission && (
+              <section
+                className="first-experiment"
+                aria-label={tr("はじめての実験", "First experiment")}
               >
-                {tr("先行角を10°変えて比べる", "Compare a 10° phase shift")}
-              </button>
-              <a href="#calculation-walkthrough">
-                {tr("計算の流れを見る", "Follow the calculation")} ↓
-              </a>
-            </div>
-          </section>
-        )}
-        <div className="workspace">
-          <section
-            className="simulation-panel"
-            aria-label={tr("シミュレーション", "Simulation")}
-          >
-            <div className="plot-toolbar">
-              <div className="frame-label">
-                <span className="status-dot" />
-                {isMission
-                  ? tr("太陽中心の全体図", "Heliocentric overview")
-                  : lab === "capture"
-                    ? tr("火星中心の捕獲実験", "Mars-centered capture lab")
-                    : lab === "flyby" && frame === "sun"
-                      ? tr("太陽中心の速度合成", "Heliocentric vector sum")
-                      : tr("地球中心の局所実験", "Earth-centered local lab")}
-              </div>
-              {lab === "flyby" ? (
-                <div className="segmented">
-                  <button
-                    aria-pressed={frame === "planet"}
-                    onClick={() => setFrame("planet")}
-                  >
-                    {tr("惑星中心", "Planet")}
-                  </button>
-                  <button
-                    aria-pressed={frame === "sun"}
-                    onClick={() => setFrame("sun")}
-                  >
-                    {tr("太陽中心", "Sun")}
-                  </button>
+                <div>
+                  <strong>
+                    {tr(
+                      "まずは、到着する瞬間を比べよう。",
+                      "Start by comparing the moment of arrival.",
+                    )}
+                  </strong>
+                  <p>
+                    {tr(
+                      "参考設定 → 先行角を10°変更 → 火星とのずれを確認。約259日の飛行時間は同じです。",
+                      "Reference → shift the lead angle by 10° → inspect the miss. The flight still takes about 259 days.",
+                    )}
+                  </p>
                 </div>
-              ) : (
-                <span className="plot-tag">
-                  {isMission ? "AU" : "km"} /{" "}
-                  {isMission
-                    ? tr("相対日数", "relative days")
-                    : tr("独立した局所時刻", "independent local time")}
-                </span>
-              )}
-            </div>
-            {valid ? (
-              <OrbitDiagram
-                sim={sim!}
-                reference={reference}
-                time={now}
-                p={p}
-                lang={lang}
-                layers={layers}
-                frame={frame}
-              />
-            ) : (
-              <div className="invalid-plot" role="status">
-                <Icon name="orbit" size={44} />
-                <h3>{tr("入力を確認してください", "Check your inputs")}</h3>
-                <p>
-                  {tr(
-                    "範囲内の数値を入力すると軌道を再計算します。",
-                    "Enter valid numbers to recalculate the trajectory.",
-                  )}
-                </p>
-              </div>
-            )}
-            <div className="legend">
-              <span>
-                <i className="legend-earth" />
-                {tr("地球", "Earth")}
-              </span>
-              <span>
-                <i className="legend-mars" />
-                {tr("火星", "Mars")}
-              </span>
-              <span>
-                <i className="legend-route" />
-                {tr("探査機の軌道", "Probe trajectory")}
-              </span>
-              <span>
-                <i className="legend-reference" />
-                {tr("参考設定（点線）", "Reference (dotted)")}
-              </span>
-            </div>
-            <div className="layer-controls">
-              {(
-                [
-                  "vectors",
-                  "trail",
-                  "predicted",
-                  "markers",
-                  "reference",
-                ] as const
-              ).map((key, i) => (
-                <label key={key}>
-                  <input
-                    type="checkbox"
-                    checked={layers[key]}
-                    onChange={(e) =>
-                      setLayers((s) => ({ ...s, [key]: e.target.checked }))
-                    }
-                  />
-                  {
-                    [
-                      tr("速度ベクトル", "Velocity"),
-                      tr("過去の軌跡", "Trail"),
-                      tr("予測軌道", "Prediction"),
-                      tr("イベント点", "Event markers"),
-                      tr("参考を重ねる", "Compare reference"),
-                    ][i]
-                  }
-                </label>
-              ))}
-            </div>
-            <div className="timeline">
-              <div className="playback-row">
-                <div className="transport">
-                  <button
-                    className="play-button"
-                    disabled={!valid || sim?.blocked}
-                    aria-label={
-                      reduceMotion
-                        ? tr("1ステップ", "One step")
-                        : playing
-                          ? tr("一時停止", "Pause")
-                          : tr("再生", "Play")
-                    }
-                    onClick={() => {
-                      if (reduceMotion) {
-                        step();
-                        return;
-                      }
-                      if (sim && now >= sim.end) setTime(sim.start);
-                      setPlaying((v) => !v);
-                    }}
-                  >
-                    <Icon
-                      name={reduceMotion ? "step" : playing ? "pause" : "play"}
-                      size={17}
-                    />
-                    {reduceMotion
-                      ? tr("ステップ", "Step")
-                      : playing
-                        ? tr("一時停止", "Pause")
-                        : tr("再生", "Play")}
+                <div className="first-experiment-actions">
+                  <button onClick={() => applyExample(defaults("transfer"))}>
+                    {tr("参考設定の到着を見る", "See reference arrival")}
                   </button>
                   <button
-                    className="icon-button"
-                    aria-label={tr("最初から", "Restart")}
-                    onClick={() => {
-                      setTime(sim?.start ?? 0);
+                    onClick={() =>
+                      applyExample({
+                        ...defaults("transfer"),
+                        phase: deg(H.phaseAngle) + 10,
+                      })
+                    }
+                  >
+                    {tr("先行角を10°変えて比べる", "Compare a 10° phase shift")}
+                  </button>
+                  <a href="#calculation-walkthrough">
+                    {tr("計算の流れを見る", "Follow the calculation")} ↓
+                  </a>
+                </div>
+              </section>
+            )}
+            <div className="workspace">
+              <section
+                className="simulation-panel"
+                aria-label={tr("シミュレーション", "Simulation")}
+              >
+                <div className="plot-toolbar">
+                  <div className="frame-label">
+                    <span className="status-dot" />
+                    {isMission
+                      ? tr("太陽中心の全体図", "Heliocentric overview")
+                      : lab === "capture"
+                        ? tr("火星中心の捕獲実験", "Mars-centered capture lab")
+                        : lab === "flyby" && frame === "sun"
+                          ? tr("太陽中心の速度合成", "Heliocentric vector sum")
+                          : tr(
+                              "地球中心の局所実験",
+                              "Earth-centered local lab",
+                            )}
+                  </div>
+                  {lab === "flyby" ? (
+                    <div className="segmented">
+                      <button
+                        aria-pressed={frame === "planet"}
+                        onClick={() => setFrame("planet")}
+                      >
+                        {tr("惑星中心", "Planet")}
+                      </button>
+                      <button
+                        aria-pressed={frame === "sun"}
+                        onClick={() => setFrame("sun")}
+                      >
+                        {tr("太陽中心", "Sun")}
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="plot-tag">
+                      {isMission ? "AU" : "km"} /{" "}
+                      {isMission
+                        ? tr("相対日数", "relative days")
+                        : tr("独立した局所時刻", "independent local time")}
+                    </span>
+                  )}
+                </div>
+                {valid ? (
+                  <OrbitDiagram
+                    sim={sim!}
+                    reference={reference}
+                    time={now}
+                    p={p}
+                    lang={lang}
+                    layers={layers}
+                    frame={frame}
+                  />
+                ) : (
+                  <div className="invalid-plot" role="status">
+                    <Icon name="orbit" size={44} />
+                    <h3>{tr("入力を確認してください", "Check your inputs")}</h3>
+                    <p>
+                      {tr(
+                        "範囲内の数値を入力すると軌道を再計算します。",
+                        "Enter valid numbers to recalculate the trajectory.",
+                      )}
+                    </p>
+                  </div>
+                )}
+                <div className="legend">
+                  <span>
+                    <i className="legend-earth" />
+                    {tr("地球", "Earth")}
+                  </span>
+                  <span>
+                    <i className="legend-mars" />
+                    {tr("火星", "Mars")}
+                  </span>
+                  <span>
+                    <i className="legend-route" />
+                    {tr("探査機の軌道", "Probe trajectory")}
+                  </span>
+                  <span>
+                    <i className="legend-reference" />
+                    {tr("参考設定（点線）", "Reference (dotted)")}
+                  </span>
+                </div>
+                <div className="layer-controls">
+                  {(
+                    [
+                      "vectors",
+                      "trail",
+                      "predicted",
+                      "markers",
+                      "reference",
+                    ] as const
+                  ).map((key, i) => (
+                    <label key={key}>
+                      <input
+                        type="checkbox"
+                        checked={layers[key]}
+                        onChange={(e) =>
+                          setLayers((s) => ({ ...s, [key]: e.target.checked }))
+                        }
+                      />
+                      {
+                        [
+                          tr("速度ベクトル", "Velocity"),
+                          tr("過去の軌跡", "Trail"),
+                          tr("予測軌道", "Prediction"),
+                          tr("イベント点", "Event markers"),
+                          tr("参考を重ねる", "Compare reference"),
+                        ][i]
+                      }
+                    </label>
+                  ))}
+                </div>
+                <div className="timeline">
+                  <div className="playback-row">
+                    <div className="transport">
+                      <button
+                        className="play-button"
+                        disabled={!valid || sim?.blocked}
+                        aria-label={
+                          reduceMotion
+                            ? tr("1ステップ", "One step")
+                            : playing
+                              ? tr("一時停止", "Pause")
+                              : tr("再生", "Play")
+                        }
+                        onClick={() => {
+                          if (reduceMotion) {
+                            step();
+                            return;
+                          }
+                          if (sim && now >= sim.end) setTime(sim.start);
+                          setPlaying((v) => !v);
+                        }}
+                      >
+                        <Icon
+                          name={
+                            reduceMotion ? "step" : playing ? "pause" : "play"
+                          }
+                          size={17}
+                        />
+                        {reduceMotion
+                          ? tr("ステップ", "Step")
+                          : playing
+                            ? tr("一時停止", "Pause")
+                            : tr("再生", "Play")}
+                      </button>
+                      <button
+                        className="icon-button"
+                        aria-label={tr("最初から", "Restart")}
+                        onClick={() => {
+                          setTime(sim?.start ?? 0);
+                          setPlaying(false);
+                        }}
+                      >
+                        <Icon name="reset" size={18} />
+                      </button>
+                      {!reduceMotion && (
+                        <button
+                          className="icon-button"
+                          aria-label={tr("1ステップ", "One step")}
+                          disabled={!valid}
+                          onClick={() => {
+                            setPlaying(false);
+                            step();
+                          }}
+                        >
+                          <Icon name="step" size={18} />
+                        </button>
+                      )}
+                    </div>
+                    <div className="clock-value">
+                      <small>
+                        {isMission
+                          ? tr("出発から", "SINCE DEPARTURE")
+                          : tr("局所時刻", "LOCAL TIME")}
+                      </small>
+                      <strong>
+                        {valid ? fmt(now / timeScale, 2) : "—"}{" "}
+                        <span>{unit}</span>
+                      </strong>
+                    </div>
+                    <label className="speed-select">
+                      <span>{tr("1秒で", "1 s =")}</span>
+                      <select
+                        aria-label={tr("再生速度", "Playback speed")}
+                        value={rate}
+                        onChange={(e) => setRate(Number(e.target.value))}
+                      >
+                        {[5, 20, 60].map((r) => (
+                          <option key={r} value={r}>
+                            {r} {isMission ? tr("日", "days") : tr("分", "min")}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <input
+                    className="seek"
+                    type="range"
+                    aria-label={tr("仮想時刻", "Simulation time")}
+                    min={sim?.start ?? 0}
+                    max={sim?.end ?? 1}
+                    step="any"
+                    value={now}
+                    disabled={!valid || sim?.blocked}
+                    onChange={(e) => {
+                      setTime(Number(e.target.value));
                       setPlaying(false);
                     }}
-                  >
-                    <Icon name="reset" size={18} />
-                  </button>
-                  {!reduceMotion && (
+                  />
+                  <div className="event-row">
                     <button
-                      className="icon-button"
-                      aria-label={tr("1ステップ", "One step")}
+                      onClick={() => {
+                        setPlaying(false);
+                        setTime(sim?.start ?? 0);
+                      }}
+                    >
+                      {isMission
+                        ? tr("出発", "Departure")
+                        : lab === "flyby"
+                          ? tr("接近", "Approach")
+                          : tr("噴射直後", "After burn")}
+                    </button>
+                    <button
                       disabled={!valid}
                       onClick={() => {
                         setPlaying(false);
-                        step();
+                        setTime(
+                          lab === "flyby"
+                            ? 0
+                            : ((sim?.start ?? 0) + (sim?.end ?? 0)) / 2,
+                        );
                       }}
                     >
-                      <Icon name="step" size={18} />
+                      {lab === "flyby"
+                        ? tr("近点", "Periapsis")
+                        : isMission
+                          ? tr("飛行の中間", "Mid-transfer")
+                          : tr("中間時刻", "Midpoint")}
                     </button>
-                  )}
-                </div>
-                <div className="clock-value">
-                  <small>
-                    {isMission
-                      ? tr("出発から", "SINCE DEPARTURE")
-                      : tr("局所時刻", "LOCAL TIME")}
-                  </small>
-                  <strong>
-                    {valid ? fmt(now / timeScale, 2) : "—"} <span>{unit}</span>
-                  </strong>
-                </div>
-                <label className="speed-select">
-                  <span>{tr("1秒で", "1 s =")}</span>
-                  <select
-                    aria-label={tr("再生速度", "Playback speed")}
-                    value={rate}
-                    onChange={(e) => setRate(Number(e.target.value))}
-                  >
-                    {[5, 20, 60].map((r) => (
-                      <option key={r} value={r}>
-                        {r} {isMission ? tr("日", "days") : tr("分", "min")}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <input
-                className="seek"
-                type="range"
-                aria-label={tr("仮想時刻", "Simulation time")}
-                min={sim?.start ?? 0}
-                max={sim?.end ?? 1}
-                step="any"
-                value={now}
-                disabled={!valid || sim?.blocked}
-                onChange={(e) => {
-                  setTime(Number(e.target.value));
-                  setPlaying(false);
-                }}
-              />
-              <div className="event-row">
-                <button
-                  onClick={() => {
-                    setPlaying(false);
-                    setTime(sim?.start ?? 0);
-                  }}
-                >
-                  {isMission
-                    ? tr("出発", "Departure")
-                    : lab === "flyby"
-                      ? tr("接近", "Approach")
-                      : tr("噴射直後", "After burn")}
-                </button>
-                <button
-                  disabled={!valid}
-                  onClick={() => {
-                    setPlaying(false);
-                    setTime(
-                      lab === "flyby"
-                        ? 0
-                        : ((sim?.start ?? 0) + (sim?.end ?? 0)) / 2,
-                    );
-                  }}
-                >
-                  {lab === "flyby"
-                    ? tr("近点", "Periapsis")
-                    : isMission
-                      ? tr("飛行の中間", "Mid-transfer")
-                      : tr("中間時刻", "Midpoint")}
-                </button>
-                <button
-                  disabled={!valid}
-                  onClick={() => {
-                    setPlaying(false);
-                    setTime(sim?.end ?? 0);
-                  }}
-                >
-                  {sim?.impact !== null && sim?.impact !== undefined
-                    ? tr("衝突", "Impact")
-                    : isMission
-                      ? `${tr("到着", "Arrival")} · ${fmt(H.flightTime / K.DAY, 1)} ${unit}`
-                      : tr("区間の終わり", "End of interval")}
-                </button>
-              </div>
-            </div>
-            <p className="scale-note">
-              {isMission
-                ? tr(
-                    "天体・探査機のマーカーは実寸ではありません。軌道の距離縮尺は共通です。",
-                    "Body and probe markers are enlarged. Orbital distances share one scale.",
-                  )
-                : tr(
-                    "惑星の実半径で衝突を判定。探査機マーカーは拡大表示です。",
-                    "Collisions use the physical planet radius. The probe marker is enlarged.",
-                  )}
-              {reduceMotion &&
-                ` ${tr("低モーション：ステップで操作します。", "Reduced motion: use step controls.")}`}
-            </p>
-          </section>
-          <aside className="control-panel">
-            <div className="panel-heading">
-              <span className="eyebrow">MISSION CONTROL</span>
-              <h3>{tr("条件を変えてみよう", "Make it your experiment")}</h3>
-              <p>
-                {tr(
-                  "一つずつ変えて、軌道と数値を比べます。",
-                  "Change one value and see what happens.",
-                )}
-              </p>
-            </div>
-            <div className="parameters">
-              {lab === "transfer" && (
-                <>
-                  {field(
-                    "phase",
-                    tr("位相角", "Phase angle"),
-                    0,
-                    360,
-                    0.001,
-                    "°",
-                  )}
-                  <p className="field-note">
-                    {tr(
-                      "基準時刻で、地球より火星が先行する角度",
-                      "How far Mars leads Earth at the reference epoch",
-                    )}
-                  </p>
-                  {field(
-                    "wait",
-                    tr("出発までの待ち時間", "Departure wait"),
-                    0,
-                    780,
-                    0.1,
-                    tr("日", "days"),
-                  )}
-                  <p className="field-note">
-                    {tr(
-                      "待つ間は地球も火星も公転します。",
-                      "Both Earth and Mars move while you wait.",
-                    )}
-                  </p>
-                </>
-              )}
-              {lab === "basics" && (
-                <>
-                  {field(
-                    "altitude",
-                    tr("待機軌道高度", "Parking altitude"),
-                    150,
-                    2000,
-                    10,
-                    "km",
-                  )}
-                  {field(
-                    "burn",
-                    tr("接線方向の噴射", "Tangential burn"),
-                    -3,
-                    5,
-                    0.01,
-                    "km/s",
-                  )}
-                  <p className="field-note">
-                    {tr(
-                      "＋は順行（加速）、−は逆行（減速）",
-                      "+ prograde (speed up), − retrograde (slow down)",
-                    )}
-                  </p>
-                </>
-              )}
-              {lab === "escape" && (
-                <>
-                  {field(
-                    "altitude",
-                    tr("待機軌道高度", "Parking altitude"),
-                    150,
-                    30000,
-                    10,
-                    "km",
-                  )}
-                  {field(
-                    "vinf",
-                    tr("目標の超過速度 v∞", "Target excess speed v∞"),
-                    0,
-                    12,
-                    0.01,
-                    "km/s",
-                  )}
-                </>
-              )}
-              {lab === "capture" && (
-                <>
-                  {field(
-                    "altitude",
-                    tr("近火点高度", "Mars periapsis altitude"),
-                    0,
-                    3000,
-                    10,
-                    "km",
-                  )}
-                  {field(
-                    "burn",
-                    tr("減速Δv", "Braking Δv"),
-                    0,
-                    5,
-                    0.001,
-                    "km/s",
-                  )}
-                  <button
-                    className="text-button"
-                    disabled={invalid.altitude || !sim}
-                    onClick={() => {
-                      if (sim) {
-                        change("burn", sim.captureResult.circularDeltaV);
-                        setInvalid({});
-                        setRevision((r) => r + 1);
-                      }
-                    }}
-                  >
-                    {tr("円軌道化に必要なΔvを設定", "Set circularization Δv")}{" "}
-                    <Icon name="arrow" size={14} />
-                  </button>
-                </>
-              )}
-              {lab === "flyby" && (
-                <>
-                  {field(
-                    "vinf",
-                    tr("接近速度", "Incoming v∞"),
-                    1,
-                    15,
-                    0.1,
-                    "km/s",
-                  )}
-                  {field(
-                    "altitude",
-                    tr("近点高度", "Periapsis altitude"),
-                    0,
-                    20000,
-                    10,
-                    "km",
-                  )}
-                  {field(
-                    "angle",
-                    tr("入射方向", "Incoming direction"),
-                    -180,
-                    180,
-                    1,
-                    "°",
-                  )}
-                  <div className="side-select">
-                    <span>
-                      {tr(
-                        "通過側（速度を回す向き）",
-                        "Pass side (velocity rotation)",
-                      )}
-                    </span>
-                    <div className="segmented">
-                      <button
-                        aria-pressed={p.side === 1}
-                        onClick={() => change("side", 1)}
-                      >
-                        {tr("反時計回り", "Counterclockwise")}
-                      </button>
-                      <button
-                        aria-pressed={p.side === -1}
-                        onClick={() => change("side", -1)}
-                      >
-                        {tr("時計回り", "Clockwise")}
-                      </button>
-                    </div>
+                    <button
+                      disabled={!valid}
+                      onClick={() => {
+                        setPlaying(false);
+                        setTime(sim?.end ?? 0);
+                      }}
+                    >
+                      {sim?.impact !== null && sim?.impact !== undefined
+                        ? tr("衝突", "Impact")
+                        : isMission
+                          ? `${tr("到着", "Arrival")} · ${fmt(H.flightTime / K.DAY, 1)} ${unit}`
+                          : tr("区間の終わり", "End of interval")}
+                    </button>
                   </div>
-                </>
-              )}
-            </div>
-            <button className="reference-button" onClick={reset}>
-              <Icon name="reset" size={15} />
-              {tr("参考設定へ戻す", "Restore reference")}
-            </button>
-            <div
-              className={`outcome ${outcome.good ? "success" : "notice"}`}
-              role="status"
-            >
-              <div>
-                <span className="status-dot" />
-                <strong>{outcome.title}</strong>
-              </div>
-              <p>{outcome.reason}</p>
-            </div>
-            <div className="thinking-note">
-              <span className="eyebrow">THINK ABOUT IT</span>
-              <p>{lesson.question[lang]}</p>
-            </div>
-          </aside>
-        </div>
-        <div className="metric-strip">
-          {metrics.length ? (
-            metrics.map(([title, value, suffix]) => (
-              <div className="metric" key={title}>
-                <span>{title}</span>
-                <strong>
-                  {value}
-                  <small>{suffix}</small>
-                </strong>
-              </div>
-            ))
-          ) : (
-            <p>
-              {tr(
-                "計算結果は、有効な入力かつモデルの安全範囲内で表示します。",
-                "Results require valid inputs within the model’s safe domain.",
-              )}
-            </p>
-          )}
-        </div>
-        <p className="model-note">
-          <Icon name="orbit" size={16} />
-          {isMission
-            ? tr(
-                "参考Δvは地球脱出＋火星円軌道投入のみ。打上げ・修正・損失は含みません。遭遇しても捕獲は別の操作です。",
-                "Reference Δv includes Earth escape and Mars circularization only; no launch, corrections or losses. Encounter and capture are different.",
-              )
-            : tr(
-                "独立した局所実験です。惑星間航路と連続接続した航法解ではありません。火星捕獲の到着v∞は検証済み参考値を使います。",
-                "This is an independent local experiment, not a continuously connected navigation solution. Mars capture uses the verified reference arrival v∞.",
-              )}
-        </p>
-        <div id="calculation-walkthrough">
-          <CalculationWalkthrough
-            lab={lab}
-            parameters={p}
-            simulation={valid ? sim : null}
-            reference={reference}
-            lang={lang}
-            onPreset={applyExample}
-          />
-        </div>
-        <div className="learning-grid">
-          <section className="lesson-panel">
-            <div className="lesson-heading">
-              <span className="eyebrow">
-                LEARNING CHALLENGE / {lesson.number}
-              </span>
-              <span className="mini-tag">
-                {tr(
-                  "予想 → 操作 → 比較 → 理解",
-                  "PREDICT → TRY → COMPARE → UNDERSTAND",
-                )}
-              </span>
-            </div>
-            <h3>{lesson.question[lang]}</h3>
-            <div className="prediction-options">
-              {lesson.prediction[lang].map((answer, i) => (
-                <button
-                  key={answer}
-                  aria-pressed={prediction === i}
-                  onClick={() => {
-                    setPrediction(i);
-                    setEvaluated(false);
-                  }}
-                >
-                  <span>{String.fromCharCode(65 + i)}</span>
-                  {answer}
-                </button>
-              ))}
-            </div>
-            <ol className="experiment-steps">
-              {lesson.steps[lang].map((s) => (
-                <li key={s}>{s}</li>
-              ))}
-            </ol>
-            <div className="challenge-actions">
-              <button
-                className="primary-outline"
-                onClick={evaluate}
-                disabled={!valid || prediction === null}
-              >
-                {tr("結果を確かめる", "Check my result")}
-                <Icon name="arrow" size={15} />
-              </button>
-              <button
-                className="text-button"
-                onClick={() =>
-                  setHint((h) => Math.min(h + 1, lesson.hints[lang].length))
-                }
-              >
-                {tr("ヒント", "Hint")} {hint}/{lesson.hints[lang].length}
-              </button>
-            </div>
-            {hint > 0 && (
-              <p className="hint-text">{lesson.hints[lang][hint - 1]}</p>
-            )}
-            {evaluated && (
-              <div className="assessment" role="status">
-                <strong>
-                  {prediction === lesson.answer
+                </div>
+                <p className="scale-note">
+                  {isMission
                     ? tr(
-                        "予想の考え方は合っています。",
-                        "Your prediction is correct.",
+                        "天体・探査機のマーカーは実寸ではありません。軌道の距離縮尺は共通です。",
+                        "Body and probe markers are enlarged. Orbital distances share one scale.",
                       )
                     : tr(
-                        "結果から考え直してみましょう。",
-                        "Use the result to revisit your prediction.",
+                        "惑星の実半径で衝突を判定。探査機マーカーは拡大表示です。",
+                        "Collisions use the physical planet radius. The probe marker is enlarged.",
                       )}
-                </strong>
-                <p>{lesson.predictionFeedback[lang]}</p>
+                  {reduceMotion &&
+                    ` ${tr("低モーション：ステップで操作します。", "Reduced motion: use step controls.")}`}
+                </p>
+              </section>
+              <aside className="control-panel">
+                <div className="panel-heading">
+                  <span className="eyebrow">MISSION CONTROL</span>
+                  <h3>{tr("条件を変えてみよう", "Make it your experiment")}</h3>
+                  <p>
+                    {tr(
+                      "一つずつ変えて、軌道と数値を比べます。",
+                      "Change one value and see what happens.",
+                    )}
+                  </p>
+                </div>
+                <div className="parameters">
+                  {lab === "transfer" && (
+                    <>
+                      {field(
+                        "phase",
+                        tr("位相角", "Phase angle"),
+                        0,
+                        360,
+                        0.001,
+                        "°",
+                      )}
+                      <p className="field-note">
+                        {tr(
+                          "基準時刻で、地球より火星が先行する角度",
+                          "How far Mars leads Earth at the reference epoch",
+                        )}
+                      </p>
+                      {field(
+                        "wait",
+                        tr("出発までの待ち時間", "Departure wait"),
+                        0,
+                        780,
+                        0.1,
+                        tr("日", "days"),
+                      )}
+                      <p className="field-note">
+                        {tr(
+                          "待つ間は地球も火星も公転します。",
+                          "Both Earth and Mars move while you wait.",
+                        )}
+                      </p>
+                    </>
+                  )}
+                  {lab === "basics" && (
+                    <>
+                      {field(
+                        "altitude",
+                        tr("待機軌道高度", "Parking altitude"),
+                        150,
+                        2000,
+                        10,
+                        "km",
+                      )}
+                      {field(
+                        "burn",
+                        tr("接線方向の噴射", "Tangential burn"),
+                        -3,
+                        5,
+                        0.01,
+                        "km/s",
+                      )}
+                      <p className="field-note">
+                        {tr(
+                          "＋は順行（加速）、−は逆行（減速）",
+                          "+ prograde (speed up), − retrograde (slow down)",
+                        )}
+                      </p>
+                    </>
+                  )}
+                  {lab === "escape" && (
+                    <>
+                      {field(
+                        "altitude",
+                        tr("待機軌道高度", "Parking altitude"),
+                        150,
+                        30000,
+                        10,
+                        "km",
+                      )}
+                      {field(
+                        "vinf",
+                        tr("目標の超過速度 v∞", "Target excess speed v∞"),
+                        0,
+                        12,
+                        0.01,
+                        "km/s",
+                      )}
+                    </>
+                  )}
+                  {lab === "capture" && (
+                    <>
+                      {field(
+                        "altitude",
+                        tr("近火点高度", "Mars periapsis altitude"),
+                        0,
+                        3000,
+                        10,
+                        "km",
+                      )}
+                      {field(
+                        "burn",
+                        tr("減速Δv", "Braking Δv"),
+                        0,
+                        5,
+                        0.001,
+                        "km/s",
+                      )}
+                      <button
+                        className="text-button"
+                        disabled={invalid.altitude || !sim}
+                        onClick={() => {
+                          if (sim) {
+                            change("burn", sim.captureResult.circularDeltaV);
+                            setInvalid({});
+                            setRevision((r) => r + 1);
+                          }
+                        }}
+                      >
+                        {tr(
+                          "円軌道化に必要なΔvを設定",
+                          "Set circularization Δv",
+                        )}{" "}
+                        <Icon name="arrow" size={14} />
+                      </button>
+                    </>
+                  )}
+                  {lab === "flyby" && (
+                    <>
+                      {field(
+                        "vinf",
+                        tr("接近速度", "Incoming v∞"),
+                        1,
+                        15,
+                        0.1,
+                        "km/s",
+                      )}
+                      {field(
+                        "altitude",
+                        tr("近点高度", "Periapsis altitude"),
+                        0,
+                        20000,
+                        10,
+                        "km",
+                      )}
+                      {field(
+                        "angle",
+                        tr("入射方向", "Incoming direction"),
+                        -180,
+                        180,
+                        1,
+                        "°",
+                      )}
+                      <div className="side-select">
+                        <span>
+                          {tr(
+                            "通過側（速度を回す向き）",
+                            "Pass side (velocity rotation)",
+                          )}
+                        </span>
+                        <div className="segmented">
+                          <button
+                            aria-pressed={p.side === 1}
+                            onClick={() => change("side", 1)}
+                          >
+                            {tr("反時計回り", "Counterclockwise")}
+                          </button>
+                          <button
+                            aria-pressed={p.side === -1}
+                            onClick={() => change("side", -1)}
+                          >
+                            {tr("時計回り", "Clockwise")}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+                <button className="reference-button" onClick={reset}>
+                  <Icon name="reset" size={15} />
+                  {tr("参考設定へ戻す", "Restore reference")}
+                </button>
+                <div
+                  className={`outcome ${outcome.good ? "success" : "notice"}`}
+                  role="status"
+                >
+                  <div>
+                    <span className="status-dot" />
+                    <strong>{outcome.title}</strong>
+                  </div>
+                  <p>{outcome.reason}</p>
+                </div>
+                <div className="thinking-note">
+                  <span className="eyebrow">THINK ABOUT IT</span>
+                  <p>{lesson.question[lang]}</p>
+                </div>
+              </aside>
+            </div>
+            <div className="metric-strip">
+              {metrics.length ? (
+                metrics.map(([title, value, suffix]) => (
+                  <div className="metric" key={title}>
+                    <span>{title}</span>
+                    <strong>
+                      {value}
+                      <small>{suffix}</small>
+                    </strong>
+                  </div>
+                ))
+              ) : (
                 <p>
-                  {outcome.good
-                    ? tr(
-                        "実験の到達条件も達成しました。",
-                        "You also met the experiment target.",
-                      )
-                    : outcome.reason}
+                  {tr(
+                    "計算結果は、有効な入力かつモデルの安全範囲内で表示します。",
+                    "Results require valid inputs within the model’s safe domain.",
+                  )}
+                </p>
+              )}
+            </div>
+            <p className="model-note">
+              <Icon name="orbit" size={16} />
+              {isMission
+                ? tr(
+                    "参考Δvは地球脱出＋火星円軌道投入のみ。打上げ・修正・損失は含みません。遭遇しても捕獲は別の操作です。",
+                    "Reference Δv includes Earth escape and Mars circularization only; no launch, corrections or losses. Encounter and capture are different.",
+                  )
+                : tr(
+                    "独立した局所実験です。惑星間航路と連続接続した航法解ではありません。火星捕獲の到着v∞は検証済み参考値を使います。",
+                    "This is an independent local experiment, not a continuously connected navigation solution. Mars capture uses the verified reference arrival v∞.",
+                  )}
+            </p>
+            <div id="calculation-walkthrough">
+              <CalculationWalkthrough
+                lab={lab}
+                parameters={p}
+                simulation={valid ? sim : null}
+                reference={reference}
+                lang={lang}
+                onPreset={applyExample}
+              />
+            </div>
+            <div className="learning-grid">
+              <section className="lesson-panel">
+                <div className="lesson-heading">
+                  <span className="eyebrow">
+                    LEARNING CHALLENGE / {lesson.number}
+                  </span>
+                  <span className="mini-tag">
+                    {tr(
+                      "予想 → 操作 → 比較 → 理解",
+                      "PREDICT → TRY → COMPARE → UNDERSTAND",
+                    )}
+                  </span>
+                </div>
+                <h3>{lesson.question[lang]}</h3>
+                <div className="prediction-options">
+                  {lesson.prediction[lang].map((answer, i) => (
+                    <button
+                      key={answer}
+                      aria-pressed={prediction === i}
+                      onClick={() => {
+                        setPrediction(i);
+                        setEvaluated(false);
+                      }}
+                    >
+                      <span>{String.fromCharCode(65 + i)}</span>
+                      {answer}
+                    </button>
+                  ))}
+                </div>
+                <ol className="experiment-steps">
+                  {lesson.steps[lang].map((s) => (
+                    <li key={s}>{s}</li>
+                  ))}
+                </ol>
+                <div className="challenge-actions">
+                  <button
+                    className="primary-outline"
+                    onClick={evaluate}
+                    disabled={!valid || prediction === null}
+                  >
+                    {tr("結果を確かめる", "Check my result")}
+                    <Icon name="arrow" size={15} />
+                  </button>
+                  <button
+                    className="text-button"
+                    onClick={() =>
+                      setHint((h) => Math.min(h + 1, lesson.hints[lang].length))
+                    }
+                  >
+                    {tr("ヒント", "Hint")} {hint}/{lesson.hints[lang].length}
+                  </button>
+                </div>
+                {hint > 0 && (
+                  <p className="hint-text">{lesson.hints[lang][hint - 1]}</p>
+                )}
+                {evaluated && (
+                  <div className="assessment" role="status">
+                    <strong>
+                      {prediction === lesson.answer
+                        ? tr(
+                            "予想の考え方は合っています。",
+                            "Your prediction is correct.",
+                          )
+                        : tr(
+                            "結果から考え直してみましょう。",
+                            "Use the result to revisit your prediction.",
+                          )}
+                    </strong>
+                    <p>{lesson.predictionFeedback[lang]}</p>
+                    <p>
+                      {outcome.good
+                        ? tr(
+                            "実験の到達条件も達成しました。",
+                            "You also met the experiment target.",
+                          )
+                        : outcome.reason}
+                    </p>
+                  </div>
+                )}
+                <details>
+                  <summary>
+                    {tr("なぜそうなる？ 解説を読む", "Why does this happen?")}
+                  </summary>
+                  <p>{lesson.explanation[lang]}</p>
+                </details>
+              </section>
+              <section className="telemetry-panel">
+                <div className="lesson-heading">
+                  <span className="eyebrow">
+                    {tr("計算結果", "MODEL VALUES")}
+                  </span>
+                  <span className="mini-tag">
+                    {isMission
+                      ? tr("太陽中心", "SUN-CENTERED")
+                      : lab === "capture"
+                        ? tr("火星中心", "MARS-CENTERED")
+                        : tr("地球中心", "EARTH-CENTERED")}
+                  </span>
+                </div>
+                <h3>
+                  {tr("数字から、動きを読む", "Read the motion in the numbers")}
+                </h3>
+                {valid && <SpeedChart sim={sim!} time={now} lang={lang} />}
+                <table>
+                  <caption className="sr-only">
+                    {tr("現在の物理状態", "Current physical state")}
+                  </caption>
+                  <tbody>
+                    <tr>
+                      <th>{tr("現在の速さ", "Current speed")}</th>
+                      <td>{current ? fmt(norm(current.v), 3) : "—"} km/s</td>
+                    </tr>
+                    <tr>
+                      <th>{tr("中心からの距離", "Distance from center")}</th>
+                      <td>
+                        {current
+                          ? fmt(
+                              norm(current.r) / (isMission ? K.AU : 1),
+                              isMission ? 4 : 0,
+                            )
+                          : "—"}{" "}
+                        {isMission ? "AU" : "km"}
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>
+                        {tr("比軌道エネルギー", "Specific orbital energy")}
+                      </th>
+                      <td>
+                        {displayable ? fmt(sim!.orbit.energy, 3) : "—"} km²/s²
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>{tr("比角運動量", "Specific angular momentum")}</th>
+                      <td>
+                        {displayable ? fmt(sim!.orbit.angularMomentum, 1) : "—"}{" "}
+                        km²/s
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <details>
+                  <summary>
+                    {tr(
+                      "詳細：式・単位・モデルの仮定",
+                      "Details: formula, units & assumptions",
+                    )}
+                  </summary>
+                  <MathFormula
+                    tex={lesson.formula}
+                    className="details-formula"
+                  />
+                  <p>{lesson.assumptions[lang]}</p>
+                  <p>
+                    {tr(
+                      "内部単位：km・s・rad。図と表は同じ状態ベクトルから計算します。",
+                      "Internal units: km, s, rad. The diagram and table share the same state vector.",
+                    )}
+                  </p>
+                  <small>{K.version}</small>
+                </details>
+              </section>
+            </div>
+            <section className="next-chapter">
+              <div>
+                <span className="eyebrow">KEEP EXPLORING</span>
+                <p>
+                  {tr(
+                    "次の実験で、旅の続きを。",
+                    "The next experiment is another discovery.",
+                  )}
                 </p>
               </div>
-            )}
-            <details>
-              <summary>
-                {tr("なぜそうなる？ 解説を読む", "Why does this happen?")}
-              </summary>
-              <p>{lesson.explanation[lang]}</p>
-            </details>
-          </section>
-          <section className="telemetry-panel">
-            <div className="lesson-heading">
-              <span className="eyebrow">{tr("計算結果", "MODEL VALUES")}</span>
-              <span className="mini-tag">
-                {isMission
-                  ? tr("太陽中心", "SUN-CENTERED")
-                  : lab === "capture"
-                    ? tr("火星中心", "MARS-CENTERED")
-                    : tr("地球中心", "EARTH-CENTERED")}
-              </span>
-            </div>
-            <h3>
-              {tr("数字から、動きを読む", "Read the motion in the numbers")}
-            </h3>
-            {valid && <SpeedChart sim={sim!} time={now} lang={lang} />}
-            <table>
-              <caption className="sr-only">
-                {tr("現在の物理状態", "Current physical state")}
-              </caption>
-              <tbody>
-                <tr>
-                  <th>{tr("現在の速さ", "Current speed")}</th>
-                  <td>{current ? fmt(norm(current.v), 3) : "—"} km/s</td>
-                </tr>
-                <tr>
-                  <th>{tr("中心からの距離", "Distance from center")}</th>
-                  <td>
-                    {current
-                      ? fmt(
-                          norm(current.r) / (isMission ? K.AU : 1),
-                          isMission ? 4 : 0,
-                        )
-                      : "—"}{" "}
-                    {isMission ? "AU" : "km"}
-                  </td>
-                </tr>
-                <tr>
-                  <th>{tr("比軌道エネルギー", "Specific orbital energy")}</th>
-                  <td>
-                    {displayable ? fmt(sim!.orbit.energy, 3) : "—"} km²/s²
-                  </td>
-                </tr>
-                <tr>
-                  <th>{tr("比角運動量", "Specific angular momentum")}</th>
-                  <td>
-                    {displayable ? fmt(sim!.orbit.angularMomentum, 1) : "—"}{" "}
-                    km²/s
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <details>
-              <summary>
-                {tr(
-                  "詳細：式・単位・モデルの仮定",
-                  "Details: formula, units & assumptions",
-                )}
-              </summary>
-              <MathFormula tex={lesson.formula} className="details-formula" />
-              <p>{lesson.assumptions[lang]}</p>
-              <p>
-                {tr(
-                  "内部単位：km・s・rad。図と表は同じ状態ベクトルから計算します。",
-                  "Internal units: km, s, rad. The diagram and table share the same state vector.",
-                )}
-              </p>
-              <small>{K.version}</small>
-            </details>
-          </section>
-        </div>
-        <section className="next-chapter">
-          <div>
-            <span className="eyebrow">KEEP EXPLORING</span>
-            <p>
-              {tr(
-                "次の実験で、旅の続きを。",
-                "The next experiment is another discovery.",
-              )}
-            </p>
-          </div>
-          <button
-            onClick={() =>
-              changeLab(
-                LABS[(LABS.findIndex((l) => l.id === lab) + 1) % LABS.length]
-                  .id,
-              )
-            }
-          >
-            {
-              LABS[(LABS.findIndex((l) => l.id === lab) + 1) % LABS.length]
-                .title[lang]
-            }
-            <Icon name="arrow" size={18} />
-          </button>
-        </section>
+              <button
+                onClick={() =>
+                  changeLab(
+                    LABS[
+                      (LABS.findIndex((l) => l.id === lab) + 1) % LABS.length
+                    ].id,
+                  )
+                }
+              >
+                {
+                  LABS[(LABS.findIndex((l) => l.id === lab) + 1) % LABS.length]
+                    .title[lang]
+                }
+                <Icon name="arrow" size={18} />
+              </button>
+            </section>
+          </>
+        )}
       </main>
       <footer>
         <span className="footer-brand">

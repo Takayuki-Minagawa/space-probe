@@ -15,26 +15,46 @@ References for the physical model, bundled constants, and implementation. Access
 
 ## 固定定数 / Bundled constants
 
-定数は [src/physics.ts](../src/physics.ts) に単位とともに固定しています。太陽・地球の重力定数はJPLのDE440に関する資料、火星はMAR097由来の値を採用した教材モデルです。統一された精密暦のデータセットではなく、観測値の自動更新も行いません。
+共通定数は [src/physics.ts](../src/physics.ts)、9天体の定数は [src/solarSystem.ts](../src/solarSystem.ts) に単位とともに固定しています。各資料から選んだ値を円軌道・球対称の教材モデルに組み合わせており、統一された精密暦のデータセットではありません。観測値の自動更新も行いません。
 
-Constants and units are bundled in [src/physics.ts](../src/physics.ts). The model combines Sun/Earth values from JPL’s DE440 documentation with a Mars value derived from MAR097. It is not a consistent precision-ephemeris dataset and does not update automatically.
+Common constants are bundled in [src/physics.ts](../src/physics.ts), with the nine bodies in [src/solarSystem.ts](../src/solarSystem.ts). Selected values from the references are combined into a circular, spherical teaching model, not a consistent precision ephemeris. Values do not update automatically.
 
 | 定数 / Constant              |                 値 / Value | 根拠 / Basis                                                                                                                                                  |
 | ---------------------------- | -------------------------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | AU                           |             149597870.7 km | [JPL Astrodynamic Parameters](https://ssd.jpl.nasa.gov/astro_par.html)、mからkmに換算。 / Converted from metres.                                              |
 | 1 day                        |                    86400 s | 同資料の単位換算。 / Unit conversion in the same reference.                                                                                                   |
 | μ Sun                        | 132712440041.279419 km³/s² | 同資料の太陽GMをSI単位から換算。 / Solar GM converted from SI.                                                                                                |
-| μ Earth                      |       398600.435507 km³/s² | 同資料の地球単体GM。 / Earth-only GM in the same reference.                                                                                                   |
-| μ Mars                       |         42828.37362 km³/s² | [JPL NAIF gm_de431.tpc](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/gm_de431.tpc) の `BODY499_GM`（MAR097）を丸めた値。 / Rounded Mars-only value. |
-| Earth orbit                  |                       1 AU | 教材の円軌道半径。 / Fixed circular-model radius.                                                                                                             |
-| Mars orbit                   |                1.523679 AU | 教材の円軌道半径。 / Fixed circular-model radius.                                                                                                             |
-| Earth radius                 |                6378.137 km | 教材の固定半径。 / Fixed model radius.                                                                                                                        |
-| Mars radius                  |                  3389.5 km | 教材の固定半径。 / Fixed model radius.                                                                                                                        |
-| Earth / Mars safety altitude |               150 / 100 km | 教材の入力・判定制約。実運用の基準ではありません。 / Teaching constraints, not operational limits.                                                            |
 
-火星単体のGMと、衛星を含む火星系GMは異なります。半径・軌道半径には形状や時代変化を反映しません。固定値から得る参考結果と判定条件は [モデル仕様](MODEL_SPEC.md) に記載しています。
+| 天体 / Body | GM (km³/s²) | 採用半径 / Radius (km) | 円軌道半径 / Circular orbit radius |
+| --- | ---: | ---: | ---: |
+| 水星 / Mercury | 22031.868551 | 2439.4 | 0.38709927 AU |
+| 金星 / Venus | 324858.592 | 6051.8 | 0.72333566 AU |
+| 地球 / Earth | 398600.435507 | 6378.137 | 1 AU |
+| 火星 / Mars | 42828.37362 | 3389.5 | 1.523679 AU |
+| 木星 / Jupiter | 126686531.9003704 | 71492 | 5.202887 AU |
+| 土星 / Saturn | 37931206.23436167 | 60268 | 9.53667594 AU |
+| 天王星 / Uranus | 5793951.256527211 | 25559 | 19.18916464 AU |
+| 海王星 / Neptune | 6835103.145462294 | 24764 | 30.06992276 AU |
+| 月 / Moon | 4902.800118 | 1737.4 | 384400 km（地球中心 / Earth-centered） |
 
-Mars-only GM differs from Mars-system GM, which includes its moons. Fixed radii omit shape and epoch dependence. See the [model specification](MODEL_SPEC.md) for reference results and evaluation criteria.
+**GMの根拠 / GM provenance**
+
+- 水星・金星・地球・月は [JPL Astrodynamic Parameters](https://ssd.jpl.nasa.gov/astro_par.html) のDE440値を採用し、表示の桁数に丸めています。 / Mercury, Venus, Earth, and Moon use the DE440 values, rounded as listed.
+- 火星・木星・土星・天王星・海王星は [JPL NAIF gm_de440.tpc](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/gm_de440.tpc) の `BODY499_GM`、`BODY599_GM`、`BODY699_GM`、`BODY799_GM`、`BODY899_GM` を使用します。火星は基礎実験と同じ丸め値です。このファイルの惑星単体GMには衛星暦由来の値が含まれます。 / These body-specific entries are used, with Mars rounded to match the guided labs. The file's planet-only GMs include values derived from satellite ephemerides.
+
+惑星単体のGMと衛星を含む惑星系GMは異なります。局所の出発・捕獲には惑星単体の値を用います。例えば、木星は `BODY599_GM` であり、木星系の `BODY5_GM` ではありません。
+
+Planet-only and planet-system GMs differ because the latter includes satellites. Local burn calculations use the planet alone: for example, Jupiter uses `BODY599_GM`, not `BODY5_GM`.
+
+**半径と軌道半径 / Body and orbital radii**
+
+- [JPL Planetary Physical Parameters](https://ssd.jpl.nasa.gov/planets/phys_par.html)：水星・金星・火星の平均半径、巨大惑星の赤道半径。地球は赤道半径を丸めた6378.137 kmを継続使用します。巨大惑星の基準半径は固い地表を表しません。 / Mean radii for Mercury, Venus, and Mars; equatorial radii for giant planets. Earth retains a rounded equatorial radius of 6378.137 km. Giant-planet radii do not denote solid surfaces.
+- [JPL Approximate Positions of the Planets, Table 1](https://ssd.jpl.nasa.gov/planets/approx_pos.html)：水星・金星・巨大惑星のJ2000半長軸を固定円軌道半径へ採用。軌道の離心率・傾斜・経年変化は使いません。地球1 AU、火星1.523679 AUは基礎実験と共通の教材値です。 / J2000 semimajor axes are reused as circular radii for Mercury, Venus, and the giant planets. Eccentricities, inclinations, and rates are omitted. Earth and Mars retain the guided labs' fixed radii.
+- [NASA Moon Fact Sheet](https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html)：月の体積平均半径1737.4 kmと半長軸384400 km。半長軸を円軌道半径として使います。 / Lunar volumetric mean radius and semimajor axis, with the latter reused as a circular radius.
+
+教材の最低高度は地球150 km、月50 km、他の岩石惑星100 km、巨大惑星1,000 kmです。遭遇の許容距離は惑星間10,000 km、月1,000 kmです。いずれも学習用の選択で、出典資料が保証する安全・接近基準ではありません。固定値から得る参考結果と判定条件は [モデル仕様](MODEL_SPEC.md) に記載しています。
+
+Minimum altitudes and encounter tolerances are teaching choices, not source-backed operational safety or approach limits. See the [model specification](MODEL_SPEC.md) for their values, reference results, and evaluation criteria.
 
 ## 実装・配信 / Implementation and deployment
 

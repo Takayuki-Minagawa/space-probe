@@ -270,6 +270,30 @@ button:hover:not(:disabled) {
   background: var(--panel);
   margin-bottom: 29px;
 }
+.route-mode-button {
+  width: 100%;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 20px;
+  margin: 0 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel);
+  color: var(--muted);
+}
+.route-mode-button.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--raised);
+}
+.route-mode-button span {
+  font-weight: 600;
+}
+.route-mode-button small {
+  margin-left: auto;
+  font-size: 11px;
+}
 .chapter {
   min-height: 58px;
   padding: 14px 16px;
